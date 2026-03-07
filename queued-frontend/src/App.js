@@ -1,17 +1,42 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
 import Watchlist from './pages/Watchlist';
+import MovieDetails from './pages/MovieDetails';
+import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/NavBar';
 
-function App() {
+function AppRoutes() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const elements = Array.from(document.querySelectorAll('.reveal'));
+    if (!elements.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [location.pathname]);
+
   return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
+    <div key={location.pathname} className="page-transition">
+      <Routes location={location}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
@@ -31,7 +56,32 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/movies/:id"
+          element={
+            <ProtectedRoute>
+              <MovieDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <AppRoutes />
     </BrowserRouter>
   );
 }

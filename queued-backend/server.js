@@ -25,7 +25,24 @@ const prisma = new PrismaClient({ adapter });
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    }
+  })
+);
 app.use(express.json());
 
 // Routes (ALL ROUTES BEFORE app.listen!)
@@ -48,6 +65,28 @@ app.get('/movies/search', async (req, res) => {
   try {
     const response = await axios.get('https://api.themoviedb.org/3/search/movie', {
       params: { api_key: apiKey, query }
+    });
+    return res.json(response.data);
+  } catch (error) {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
+app.get('/movies/:id', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+  const { id } = req.params;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  }
+
+  if (!id) {
+    return res.status(400).json({ error: 'Missing movie id.' });
+  }
+
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}`, {
+      params: { api_key: apiKey }
     });
     return res.json(response.data);
   } catch (error) {
