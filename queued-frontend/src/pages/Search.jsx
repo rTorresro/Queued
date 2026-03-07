@@ -95,7 +95,7 @@ export default function Search() {
       setQuery(searchTerm);
       performSearch(searchTerm);
     }
-  }, [location.search]);
+  }, [location.search, query]);
 
   return (
     <section id="search" className="mx-auto w-full max-w-6xl px-6 py-10 reveal">
