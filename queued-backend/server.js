@@ -10,20 +10,8 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Pool } = require('pg');
 
-// Create PostgreSQL pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('render.com')
-    ? { rejectUnauthorized: false }
-    : false,
-});
-
-// Create Prisma adapter
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 const app = express();
 
