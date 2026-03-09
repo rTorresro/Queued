@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import API_BASE_URL from '../config';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [trending, setTrending] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -15,7 +22,7 @@ export default function Home() {
         const data = await res.json();
         setTrending(data.results?.slice(0, 6) || []);
       } catch {
-        // fail silently — trending is non-critical
+        // fail silently
       } finally {
         setTrendingLoading(false);
       }
@@ -36,34 +43,16 @@ export default function Home() {
             Welcome to <span className="text-red-400">Queued</span>
           </h1>
           <p className="mt-4 max-w-2xl text-sm text-slate-300">
-            Discover movies, build a watchlist, and keep track of what you have
-            seen — all in a dark, cinematic workspace inspired by modern film
-            communities.
+            Discover movies, build a watchlist, and keep track of what you've
+            seen — without the noise of social feeds or critic scores.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            {!isAuthenticated ? (
-              <Link
-                to="/login"
-                className="rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
-              >
-                Log in to start
-              </Link>
-            ) : (
-              <>
-                <Link
-                  to="/search"
-                  className="rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
-                >
-                  Search movies
-                </Link>
-                <Link
-                  to="/watchlist"
-                  className="rounded-full border border-white/10 bg-slate-900/70 px-6 py-2 text-sm font-semibold text-slate-100 transition hover:border-red-500/40 hover:text-red-200"
-                >
-                  View watchlist
-                </Link>
-              </>
-            )}
+            <Link
+              to="/login"
+              className="rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
+            >
+              Get started
+            </Link>
           </div>
         </div>
       </div>
@@ -71,46 +60,33 @@ export default function Home() {
       <div className="mt-10 grid gap-6 md:grid-cols-3 reveal">
         {[
           {
-            title: 'Tell us what you want to watch',
-            body: 'Search the catalog and add films to your queue with one click.'
+            title: 'Know where to watch',
+            body: 'See exactly which streaming services carry each movie. No more searching around.'
           },
           {
-            title: 'Track what you have watched',
-            body: 'Mark titles as watched and leave a rating when you finish.'
+            title: 'Track without the noise',
+            body: 'No followers, no reviews, no algorithm. Just your movies, your ratings, your queue.'
           },
           {
-            title: 'Build your personal queue',
-            body: 'Everything you care about lives in one clean watchlist.'
+            title: 'Understand your taste',
+            body: 'Your profile builds a picture of what genres and eras you actually love.'
           }
         ].map((card) => (
           <div
             key={card.title}
             className="rounded-2xl border border-white/10 bg-slate-950/70 p-6 shadow-xl"
           >
-            <h3 className="text-lg font-semibold text-slate-100">{card.title}</h3>
+            <h3 className="text-base font-semibold text-slate-100">{card.title}</h3>
             <p className="mt-2 text-sm text-slate-400">{card.body}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-12 reveal">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-100">Trending this week</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              What the world is watching right now.
-            </p>
-          </div>
-          {isAuthenticated && (
-            <Link
-              to="/search"
-              className="text-xs font-semibold text-red-400 transition hover:text-red-300"
-            >
-              Search all →
-            </Link>
-          )}
-        </div>
-
+        <h2 className="text-xl font-semibold text-slate-100">Trending this week</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          What the world is watching right now.
+        </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {trendingLoading &&
             Array.from({ length: 6 }).map((_, i) => (
@@ -124,13 +100,12 @@ export default function Home() {
                 </div>
               </div>
             ))}
-
           {!trendingLoading &&
             trending.map((movie) => (
               <Link
                 key={movie.id}
-                to={isAuthenticated ? `/movies/${movie.id}` : '/login'}
-                className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-lg transition hover:border-red-500/30 hover:shadow-red-900/20"
+                to="/login"
+                className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-lg transition hover:border-red-500/30"
               >
                 {movie.poster_path ? (
                   <img
@@ -144,7 +119,7 @@ export default function Home() {
                   </div>
                 )}
                 <div className="p-3">
-                  <p className="text-xs font-semibold text-slate-100 leading-snug">{movie.title}</p>
+                  <p className="text-xs font-semibold leading-snug text-slate-100">{movie.title}</p>
                   {movie.vote_average > 0 && (
                     <p className="mt-1 text-[10px] text-yellow-400">
                       ★ {movie.vote_average.toFixed(1)}
