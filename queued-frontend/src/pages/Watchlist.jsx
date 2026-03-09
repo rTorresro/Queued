@@ -1,15 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import MovieCard from '../components/MovieCard';
 import Rating from '../components/Rating';
 import API_BASE_URL from '../config';
 
+const FILTER_OPTIONS = ['All', 'Unwatched', 'Watched'];
+const SORT_OPTIONS = [
+  { label: 'Date added', value: 'date' },
+  { label: 'Title', value: 'title' },
+  { label: 'Rating', value: 'rating' }
+];
+
 export default function Watchlist() {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('All');
+  const [sort, setSort] = useState('date');
+
   const headerBackdrop = items[0]?.poster_path || null;
   const skeletonCards = Array.from({ length: 6 });
   const watchedCount = items.filter((item) => item.is_watched).length;
@@ -18,6 +28,22 @@ export default function Watchlist() {
   const avgRating = ratedCount
     ? (items.reduce((sum, item) => sum + (item.rating || 0), 0) / ratedCount).toFixed(1)
     : '—';
+
+  const displayedItems = useMemo(() => {
+    let filtered = [...items];
+
+    if (filter === 'Watched') filtered = filtered.filter((i) => i.is_watched);
+    if (filter === 'Unwatched') filtered = filtered.filter((i) => !i.is_watched);
+
+    if (sort === 'title') {
+      filtered.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sort === 'rating') {
+      filtered.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    }
+    // 'date' keeps the default order from API (added_at desc)
+
+    return filtered;
+  }, [items, filter, sort]);
 
   const fetchWatchlist = async () => {
     setError('');
@@ -184,12 +210,53 @@ export default function Watchlist() {
           </div>
           <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-900/70">
             <div
-              className="h-full rounded-full bg-emerald-500/80"
+              className="h-full rounded-full bg-emerald-500/80 transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
       </div>
+
+      {/* Filter + Sort controls */}
+      {!loading && items.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 reveal">
+          <div className="flex items-center gap-2">
+            {FILTER_OPTIONS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFilter(f)}
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                  filter === f
+                    ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200'
+                    : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
+                }`}
+              >
+                {f}
+                {f === 'Watched' && ` (${watchedCount})`}
+                {f === 'Unwatched' && ` (${items.length - watchedCount})`}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 uppercase tracking-widest">Sort</span>
+            {SORT_OPTIONS.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => setSort(s.value)}
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                  sort === s.value
+                    ? 'border-red-500/50 bg-red-600/10 text-red-200'
+                    : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 reveal">
         {loading && <p className="text-sm text-slate-400">Loading...</p>}
@@ -204,6 +271,9 @@ export default function Watchlist() {
               Search movies
             </Link>
           </div>
+        )}
+        {!loading && !error && items.length > 0 && displayedItems.length === 0 && (
+          <p className="text-sm text-slate-400">No items match this filter.</p>
         )}
       </div>
 
@@ -224,12 +294,13 @@ export default function Watchlist() {
             </div>
           ))}
         {!loading &&
-          items.map((item) => (
+          displayedItems.map((item) => (
             <MovieCard
               key={item.id}
               title={item.title}
               posterPath={item.poster_path}
               tmdbId={item.tmdb_movie_id}
+              badge={item.is_watched ? 'Watched' : undefined}
               actions={
                 <>
                   <button

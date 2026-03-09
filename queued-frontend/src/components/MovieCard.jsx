@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const MovieCard = ({ title, posterPath, description, actions, children, tmdbId }) => {
+const MovieCard = ({ title, posterPath, description, actions, children, tmdbId, badge }) => {
   const cardRef = useRef(null);
   const [tiltStyle, setTiltStyle] = useState({});
   const [glowColor, setGlowColor] = useState('rgba(229, 9, 20, 0.35)');
@@ -90,9 +90,11 @@ const MovieCard = ({ title, posterPath, description, actions, children, tmdbId }
           posterContent
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/20 to-transparent" />
-        <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-200">
-          Featured
-        </div>
+        {badge && (
+          <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-200">
+            {badge}
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-3 p-4">
         {tmdbId ? (

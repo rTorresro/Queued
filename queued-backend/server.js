@@ -72,6 +72,41 @@ app.get('/movies/search', async (req, res) => {
   }
 });
 
+app.get('/movies/trending', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  }
+
+  try {
+    const response = await axios.get('https://api.themoviedb.org/3/trending/movie/week', {
+      params: { api_key: apiKey }
+    });
+    return res.json(response.data);
+  } catch (error) {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
+app.get('/movies/:id/credits', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+  const { id } = req.params;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  }
+
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/credits`, {
+      params: { api_key: apiKey }
+    });
+    return res.json(response.data);
+  } catch (error) {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
 app.get('/movies/:id', async (req, res) => {
   const apiKey = process.env.TMDB_API_KEY;
   const { id } = req.params;

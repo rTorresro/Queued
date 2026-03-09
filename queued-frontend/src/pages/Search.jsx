@@ -10,6 +10,7 @@ export default function Search() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [watchlistIds, setWatchlistIds] = useState(new Set());
   const { token } = useAuth();
   const headerBackdrop =
     results.find((movie) => movie.backdrop_path)?.backdrop_path || null;
@@ -21,6 +22,20 @@ export default function Search() {
     return movie.vote_average > best.vote_average ? movie : best;
   }, null);
   const location = useLocation();
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/watchlist`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setWatchlistIds(new Set(data.map((item) => item.tmdb_movie_id)));
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   const performSearch = async (searchTerm) => {
     setError('');
@@ -82,7 +97,8 @@ export default function Search() {
         return;
       }
 
-      setSuccess('Added to watchlist!');
+      setSuccess(`"${movie.title}" added to watchlist!`);
+      setWatchlistIds((prev) => new Set([...prev, movie.id]));
     } catch (err) {
       setError('Network error');
     }
@@ -200,24 +216,34 @@ export default function Search() {
             </div>
           ))}
         {!isLoading &&
-          results.map((movie) => (
-            <MovieCard
-              key={movie.id}
-              title={movie.title}
-              posterPath={movie.poster_path}
-              description={movie.overview}
-              tmdbId={movie.id}
-              actions={
-                <button
-                  type="button"
-                  onClick={() => handleAddToWatchlist(movie)}
-                  className="rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-500"
-                >
-                  Add to Watchlist
-                </button>
-              }
-            />
-          ))}
+          results.map((movie) => {
+            const inWatchlist = watchlistIds.has(movie.id);
+            return (
+              <MovieCard
+                key={movie.id}
+                title={movie.title}
+                posterPath={movie.poster_path}
+                description={movie.overview}
+                tmdbId={movie.id}
+                badge={inWatchlist ? 'In Watchlist' : undefined}
+                actions={
+                  inWatchlist ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-600/10 px-4 py-2 text-xs font-semibold text-emerald-300">
+                      ✓ In Watchlist
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAddToWatchlist(movie)}
+                      className="rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-500"
+                    >
+                      Add to Watchlist
+                    </button>
+                  )
+                }
+              />
+            );
+          })}
       </div>
 
       {!isLoading && results.length > 0 && (
@@ -255,4 +281,3 @@ export default function Search() {
     </section>
   );
 }
-
