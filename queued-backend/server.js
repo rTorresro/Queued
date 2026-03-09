@@ -92,6 +92,24 @@ app.get('/movies/trending', async (req, res) => {
   }
 });
 
+app.get('/movies/:id/providers', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+  const { id } = req.params;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  }
+
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/watch/providers`, {
+      params: { api_key: apiKey }
+    });
+    return res.json(response.data);
+  } catch (error) {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
 app.get('/movies/:id/credits', async (req, res) => {
   const apiKey = process.env.TMDB_API_KEY;
   const { id } = req.params;
@@ -224,7 +242,7 @@ app.post('/watchlist', authenticateToken, async (req, res) => {  // ✅ ADDED au
   console.log('Request body:', req.body);
 
   try {
-    const { tmdbMovieId, title, posterPath } = req.body;
+    const { tmdbMovieId, title, posterPath, runtime, genres, releaseYear } = req.body;
     const userId = req.userId;
 
     const item = await prisma.watchlist_items.create({
@@ -232,7 +250,10 @@ app.post('/watchlist', authenticateToken, async (req, res) => {  // ✅ ADDED au
         user_id: userId,
         tmdb_movie_id: tmdbMovieId,
         title,
-        poster_path: posterPath
+        poster_path: posterPath,
+        runtime: runtime || null,
+        genres: genres || null,
+        release_year: releaseYear || null
       }
     });
     

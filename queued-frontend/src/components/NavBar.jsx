@@ -1,10 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import useAuth from '../hooks/useAuth';
 
 const Navbar = () => {
   const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleLogout = () => {
@@ -20,54 +21,53 @@ const Navbar = () => {
     setSearchTerm('');
   };
 
+  const linkClass = (path) => {
+    const active = location.pathname === path;
+    return `cursor-pointer rounded-full px-3 py-1 text-sm font-semibold transition ${
+      active
+        ? 'bg-red-600/25 text-red-300'
+        : 'text-slate-100 hover:bg-red-600/20'
+    }`;
+  };
+
   return (
     <div className="mx-auto mt-6 flex max-w-6xl items-center justify-between gap-6 rounded-2xl border border-white/10 bg-slate-950/90 px-7 py-4 shadow-2xl">
       <div className="flex items-center gap-6">
-        <Link to="/" className="text-xl font-extrabold text-red-400">
+        <Link to={isAuthenticated ? '/dashboard' : '/'} className="text-xl font-extrabold text-red-400">
           Queued
         </Link>
-        <ul className="flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-100">
-        <li>
-          <Link className="cursor-pointer rounded-full px-3 py-1 transition hover:bg-red-600/20" to="/">
-            Home
-          </Link>
-        </li>
-        {!isAuthenticated && (
+        <ul className="flex flex-wrap items-center gap-1">
           <li>
-            <Link className="cursor-pointer rounded-full px-3 py-1 transition hover:bg-red-600/20" to="/login">
-              Login
-            </Link>
+            <Link className={linkClass('/')} to="/">Home</Link>
           </li>
-        )}
-        {isAuthenticated && (
-          <>
+          {!isAuthenticated && (
             <li>
-              <Link className="cursor-pointer rounded-full px-3 py-1 transition hover:bg-red-600/20" to="/search">
-                Search
-              </Link>
+              <Link className={linkClass('/login')} to="/login">Login</Link>
             </li>
-            <li>
-              <Link className="cursor-pointer rounded-full px-3 py-1 transition hover:bg-red-600/20" to="/watchlist">
-                Watchlist
-              </Link>
-            </li>
-            <li>
-              <Link className="cursor-pointer rounded-full px-3 py-1 transition hover:bg-red-600/20" to="/profile">
-                Profile
-              </Link>
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-full px-3 py-1 text-sm font-semibold text-slate-100 transition hover:bg-red-600/20"
-              >
-                Logout
-              </button>
-            </li>
-          </>
-        )}
-      </ul>
+          )}
+          {isAuthenticated && (
+            <>
+              <li>
+                <Link className={linkClass('/search')} to="/search">Search</Link>
+              </li>
+              <li>
+                <Link className={linkClass('/watchlist')} to="/watchlist">Watchlist</Link>
+              </li>
+              <li>
+                <Link className={linkClass('/profile')} to="/profile">Profile</Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="cursor-pointer rounded-full px-3 py-1 text-sm font-semibold text-slate-100 transition hover:bg-red-600/20"
+                >
+                  Logout
+                </button>
+              </li>
+            </>
+          )}
+        </ul>
       </div>
 
       {isAuthenticated && (
