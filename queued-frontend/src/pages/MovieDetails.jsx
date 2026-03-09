@@ -7,6 +7,7 @@ export default function MovieDetails() {
   const { id } = useParams();
   const { token } = useAuth();
   const [movie, setMovie] = useState(null);
+  const [cast, setCast] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
@@ -17,15 +18,20 @@ export default function MovieDetails() {
       setLoading(true);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/movies/${id}`);
-        const data = await res.json();
+        const [movieRes, creditsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/movies/${id}`),
+          fetch(`${API_BASE_URL}/movies/${id}/credits`)
+        ]);
+        const movieData = await movieRes.json();
+        const creditsData = await creditsRes.json();
 
-        if (!res.ok) {
-          setError(data?.error || 'Failed to load movie.');
+        if (!movieRes.ok) {
+          setError(movieData?.error || 'Failed to load movie.');
           return;
         }
 
-        setMovie(data);
+        setMovie(movieData);
+        setCast(creditsData.cast?.slice(0, 8) || []);
       } catch (err) {
         setError('Network error');
       } finally {
@@ -70,7 +76,10 @@ export default function MovieDetails() {
   if (loading) {
     return (
       <section className="mx-auto w-full max-w-6xl px-6 py-12">
-        <p className="text-sm text-slate-400">Loading...</p>
+        <div className="animate-pulse space-y-4">
+          <div className="h-10 w-1/3 rounded bg-slate-800" />
+          <div className="h-80 rounded-2xl bg-slate-800" />
+        </div>
       </section>
     );
   }
@@ -104,7 +113,7 @@ export default function MovieDetails() {
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/70 to-slate-900/30" />
         <div className="relative">
           <Link to="/search" className="text-xs font-semibold text-red-300">
-        ← Back to search
+            ← Back to search
           </Link>
           <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-xl">
@@ -125,7 +134,9 @@ export default function MovieDetails() {
               <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
                 {movie.release_date && <span>{movie.release_date}</span>}
                 {movie.runtime && <span>{movie.runtime} min</span>}
-                {movie.vote_average && <span>{movie.vote_average.toFixed(1)} / 10</span>}
+                {movie.vote_average > 0 && (
+                  <span className="text-yellow-400">★ {movie.vote_average.toFixed(1)} / 10</span>
+                )}
               </div>
               {movie.genres?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -148,13 +159,45 @@ export default function MovieDetails() {
                 >
                   Add to Watchlist
                 </button>
-                {success && <p className="text-xs text-emerald-400">{success}</p>}
-                {error && <p className="text-xs text-red-400">{error}</p>}
+                {success && <p className="self-center text-xs text-emerald-400">{success}</p>}
+                {error && <p className="self-center text-xs text-red-400">{error}</p>}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Cast */}
+      {cast.length > 0 && (
+        <div className="mt-10 reveal">
+          <h2 className="text-lg font-semibold text-slate-100">Cast</h2>
+          <div className="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8">
+            {cast.map((person) => (
+              <div key={person.id} className="flex flex-col items-center gap-2">
+                <div className="h-16 w-16 overflow-hidden rounded-full border border-white/10 bg-slate-800">
+                  {person.profile_path ? (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+                      alt={person.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-600 text-lg">
+                      ?
+                    </div>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-[11px] font-semibold text-slate-200 leading-tight">{person.name}</p>
+                  {person.character && (
+                    <p className="mt-0.5 text-[10px] text-slate-500 leading-tight">{person.character}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
