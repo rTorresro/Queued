@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import MovieCard from '../components/MovieCard';
@@ -11,6 +11,96 @@ const SORT_OPTIONS = [
   { label: 'Title', value: 'title' },
   { label: 'Rating', value: 'rating' }
 ];
+const RUNTIME_OPTIONS = [
+  { label: 'Any length', value: 'any' },
+  { label: 'Under 90m', value: 'short' },
+  { label: '90–120m', value: 'medium' },
+  { label: 'Over 2h', value: 'long' }
+];
+
+function SurpriseMeModal({ item, onClose, onMarkWatched }) {
+  if (!item) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {item.poster_path && (
+          <img
+            src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
+            alt={item.title}
+            className="h-56 w-full object-cover"
+          />
+        )}
+        <div className="p-6">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-red-300/80">Tonight's pick</p>
+          <h2 className="mt-2 text-xl font-bold text-slate-100">{item.title}</h2>
+          {item.release_year && <p className="mt-1 text-xs text-slate-500">{item.release_year}</p>}
+          {item.runtime && <p className="text-xs text-slate-500">{item.runtime} min</p>}
+          {item.genres && (
+            <p className="mt-2 text-xs text-slate-400">{item.genres.split(',').join(' · ')}</p>
+          )}
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              onClick={() => { onMarkWatched(item); onClose(); }}
+              className="flex-1 rounded-full bg-emerald-600 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+            >
+              Mark watched
+            </button>
+            <Link
+              to={`/movies/${item.tmdb_movie_id}`}
+              className="flex-1 rounded-full border border-white/10 bg-slate-800 py-2 text-center text-xs font-semibold text-slate-200 transition hover:border-white/20"
+              onClick={onClose}
+            >
+              Details
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-white/10 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-400 transition hover:text-slate-200"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NoteField({ item, onSaveNote }) {
+  const [note, setNote] = useState(item.notes || '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const timerRef = useRef(null);
+
+  const save = async (value) => {
+    if (value === (item.notes || '')) return;
+    setSaving(true);
+    await onSaveNote(item, value);
+    setSaving(false);
+    setSaved(true);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="mt-2">
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        onBlur={(e) => save(e.target.value)}
+        placeholder="Add a quick note…"
+        rows={2}
+        className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:border-red-500/40 focus:outline-none"
+      />
+      {saving && <p className="mt-1 text-[10px] text-slate-500">Saving…</p>}
+      {saved && <p className="mt-1 text-[10px] text-emerald-400">✓ Saved</p>}
+    </div>
+  );
+}
 
 export default function Watchlist() {
   const { token } = useAuth();
@@ -19,6 +109,8 @@ export default function Watchlist() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [sort, setSort] = useState('date');
+  const [runtimeFilter, setRuntimeFilter] = useState('any');
+  const [surpriseItem, setSurpriseItem] = useState(null);
   const [nextId, setNextId] = useState(() => {
     const stored = localStorage.getItem('queued_next_id');
     return stored ? parseInt(stored) : null;
@@ -41,10 +133,13 @@ export default function Watchlist() {
     let filtered = items.filter((i) => i.id !== nextId || i.is_watched);
     if (filter === 'Watched') filtered = filtered.filter((i) => i.is_watched);
     if (filter === 'Unwatched') filtered = filtered.filter((i) => !i.is_watched);
+    if (runtimeFilter === 'short') filtered = filtered.filter((i) => i.runtime && i.runtime < 90);
+    if (runtimeFilter === 'medium') filtered = filtered.filter((i) => i.runtime && i.runtime >= 90 && i.runtime <= 120);
+    if (runtimeFilter === 'long') filtered = filtered.filter((i) => i.runtime && i.runtime > 120);
     if (sort === 'title') filtered.sort((a, b) => a.title.localeCompare(b.title));
     if (sort === 'rating') filtered.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
     return filtered;
-  }, [items, filter, sort, nextId]);
+  }, [items, filter, sort, runtimeFilter, nextId]);
 
   const handlePinNext = (id) => {
     if (nextId === id) {
@@ -54,6 +149,12 @@ export default function Watchlist() {
       setNextId(id);
       localStorage.setItem('queued_next_id', String(id));
     }
+  };
+
+  const handleSurpriseMe = () => {
+    const pool = items.filter((i) => !i.is_watched && i.id !== nextId);
+    if (pool.length === 0) return;
+    setSurpriseItem(pool[Math.floor(Math.random() * pool.length)]);
   };
 
   const fetchWatchlist = async () => {
@@ -116,8 +217,28 @@ export default function Watchlist() {
     } catch { /* silent — optimistic update already applied */ }
   };
 
+  const handleSaveNote = async (item, notes) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/watchlist/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ notes })
+      });
+      const data = await res.json();
+      if (res.ok) setItems((prev) => prev.map((i) => (i.id === item.id ? data : i)));
+    } catch { /* silent */ }
+  };
+
   return (
     <section id="watchlist" className="mx-auto w-full max-w-6xl px-6 py-10 reveal">
+      {surpriseItem && (
+        <SurpriseMeModal
+          item={surpriseItem}
+          onClose={() => setSurpriseItem(null)}
+          onMarkWatched={handleToggleWatched}
+        />
+      )}
+
       {/* Header */}
       <div
         className="glass-panel relative overflow-hidden rounded-3xl p-8 shadow-2xl"
@@ -131,8 +252,21 @@ export default function Watchlist() {
         <div className="absolute -right-24 -top-16 h-56 w-56 rounded-full bg-emerald-500/20 blur-3xl" />
         <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="relative">
-          <h1 className="text-3xl font-semibold text-slate-100">Watchlist</h1>
-          <p className="mt-2 text-sm text-slate-400">Manage what you plan to watch next.</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-semibold text-slate-100">Watchlist</h1>
+              <p className="mt-2 text-sm text-slate-400">Manage what you plan to watch next.</p>
+            </div>
+            {items.filter((i) => !i.is_watched).length > 0 && (
+              <button
+                type="button"
+                onClick={handleSurpriseMe}
+                className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-5 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-600/20"
+              >
+                🎲 Surprise Me
+              </button>
+            )}
+          </div>
           <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
             <span className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1">Total: {items.length}</span>
             <span className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1">Watched: {watchedCount}</span>
@@ -161,7 +295,8 @@ export default function Watchlist() {
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold text-slate-100">{nextItem.title}</p>
-              <p className="mt-1 text-xs text-slate-500">Pinned as your next watch</p>
+              {nextItem.runtime && <p className="mt-0.5 text-xs text-slate-500">{nextItem.runtime} min</p>}
+              <p className="mt-0.5 text-xs text-slate-500">Pinned as your next watch</p>
             </div>
             <div className="flex shrink-0 gap-2">
               <button
@@ -183,41 +318,61 @@ export default function Watchlist() {
         </div>
       )}
 
-      {/* Filter + Sort */}
+      {/* Filter + Sort + Runtime */}
       {!loading && items.length > 0 && (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 reveal">
-          <div className="flex items-center gap-2">
-            {FILTER_OPTIONS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
-                  filter === f
-                    ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200'
-                    : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
-                }`}
-              >
-                {f}
-                {f === 'Watched' && ` (${watchedCount})`}
-                {f === 'Unwatched' && ` (${items.length - watchedCount})`}
-              </button>
-            ))}
+        <div className="mt-6 space-y-3 reveal">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {FILTER_OPTIONS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                    filter === f
+                      ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200'
+                      : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
+                  }`}
+                >
+                  {f}
+                  {f === 'Watched' && ` (${watchedCount})`}
+                  {f === 'Unwatched' && ` (${items.length - watchedCount})`}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-widest text-slate-500">Sort</span>
+              {SORT_OPTIONS.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setSort(s.value)}
+                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                    sort === s.value
+                      ? 'border-red-500/50 bg-red-600/10 text-red-200'
+                      : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-widest text-slate-500">Sort</span>
-            {SORT_OPTIONS.map((s) => (
+          {/* Runtime filter */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-widest text-slate-500">⏱ Length</span>
+            {RUNTIME_OPTIONS.map((r) => (
               <button
-                key={s.value}
+                key={r.value}
                 type="button"
-                onClick={() => setSort(s.value)}
-                className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
-                  sort === s.value
-                    ? 'border-red-500/50 bg-red-600/10 text-red-200'
+                onClick={() => setRuntimeFilter(r.value)}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  runtimeFilter === r.value
+                    ? 'border-purple-500/50 bg-purple-600/10 text-purple-200'
                     : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
                 }`}
               >
-                {s.label}
+                {r.label}
               </button>
             ))}
           </div>
@@ -300,6 +455,9 @@ export default function Watchlist() {
                 value={item.rating ?? ''}
                 onRate={(value) => handleRate(item, value)}
               />
+              {item.is_watched && (
+                <NoteField item={item} onSaveNote={handleSaveNote} />
+              )}
             </MovieCard>
           ))}
       </div>

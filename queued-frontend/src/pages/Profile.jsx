@@ -65,6 +65,17 @@ export default function Profile() {
       .sort((a, b) => Number(a[0]) - Number(b[0]));
     const maxDecadeCount = Math.max(...decades.map(([, c]) => c), 1);
 
+    // Director breakdown
+    const directorCounts = {};
+    items
+      .filter((i) => i.is_watched && i.director)
+      .forEach((i) => {
+        directorCounts[i.director] = (directorCounts[i.director] || 0) + 1;
+      });
+    const topDirectors = Object.entries(directorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
     // Top rated
     const topRated = [...items]
       .filter((i) => i.rating !== null)
@@ -84,6 +95,7 @@ export default function Profile() {
       hours, minutes,
       topGenres, maxGenreCount,
       decades, maxDecadeCount,
+      topDirectors,
       topRated, distribution, maxCount
     };
   }, [items]);
@@ -167,6 +179,27 @@ export default function Profile() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Director stats */}
+            {stats.topDirectors.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-6">
+                <h2 className="text-base font-semibold text-slate-100">Directors you love</h2>
+                <p className="mt-1 text-xs text-slate-500">Based on movies you've watched</p>
+                <div className="mt-5 space-y-3">
+                  {stats.topDirectors.map(([name, count]) => (
+                    <div key={name} className="flex items-center gap-3">
+                      <span className="w-32 shrink-0 truncate text-xs font-semibold text-slate-300">{name}</span>
+                      <div className="flex-1 flex gap-1">
+                        {Array.from({ length: count }).map((_, i) => (
+                          <div key={i} className="h-2 w-2 rounded-full bg-red-500/70" />
+                        ))}
+                      </div>
+                      <span className="w-8 shrink-0 text-right text-xs text-slate-500">{count} {count === 1 ? 'film' : 'films'}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

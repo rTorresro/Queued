@@ -110,6 +110,34 @@ app.get('/movies/:id/providers', async (req, res) => {
   }
 });
 
+app.get('/movies/:id/similar', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+  const { id } = req.params;
+  if (!apiKey) return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/similar`, {
+      params: { api_key: apiKey }
+    });
+    return res.json(response.data);
+  } catch {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
+app.get('/movies/:id/videos', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+  const { id } = req.params;
+  if (!apiKey) return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/videos`, {
+      params: { api_key: apiKey }
+    });
+    return res.json(response.data);
+  } catch {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
 app.get('/movies/:id/credits', async (req, res) => {
   const apiKey = process.env.TMDB_API_KEY;
   const { id } = req.params;
@@ -242,7 +270,7 @@ app.post('/watchlist', authenticateToken, async (req, res) => {  // ✅ ADDED au
   console.log('Request body:', req.body);
 
   try {
-    const { tmdbMovieId, title, posterPath, runtime, genres, releaseYear } = req.body;
+    const { tmdbMovieId, title, posterPath, runtime, genres, releaseYear, director, isWatched } = req.body;
     const userId = req.userId;
 
     const item = await prisma.watchlist_items.create({
@@ -250,10 +278,12 @@ app.post('/watchlist', authenticateToken, async (req, res) => {  // ✅ ADDED au
         user_id: userId,
         tmdb_movie_id: tmdbMovieId,
         title,
-        poster_path: posterPath,
+        poster_path: posterPath || null,
         runtime: runtime || null,
         genres: genres || null,
-        release_year: releaseYear || null
+        release_year: releaseYear || null,
+        director: director || null,
+        is_watched: isWatched || false
       }
     });
     
@@ -292,27 +322,29 @@ app.patch('/watchlist/:id', authenticateToken, async (req, res) => {
   
   try {
     const { id } = req.params;
-    const { isWatched, rating } = req.body;
+    const { isWatched, rating, notes } = req.body;
     const userId = req.userId;
-    
+
     // Make sure the item belongs to this user
     const item = await prisma.watchlist_items.findFirst({
-      where: { 
+      where: {
         id: parseInt(id),
         user_id: userId
       }
     });
-    
+
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
+    const updateData = {};
+    if (isWatched !== undefined) updateData.is_watched = isWatched;
+    if (rating !== undefined) updateData.rating = rating;
+    if (notes !== undefined) updateData.notes = notes;
+
     const updatedItem = await prisma.watchlist_items.update({
       where: { id: parseInt(id) },
-      data: { 
-        is_watched: isWatched, 
-        rating 
-      }
+      data: updateData
     });
     
     res.json(updatedItem);

@@ -8,31 +8,51 @@ export default function MovieDetails() {
   const { token } = useAuth();
   const [movie, setMovie] = useState(null);
   const [cast, setCast] = useState([]);
+  const [director, setDirector] = useState(null);
   const [providers, setProviders] = useState(null);
+  const [trailer, setTrailer] = useState(null);
+  const [similar, setSimilar] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [addingAsSeen, setAddingAsSeen] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
       setError('');
       setLoading(true);
       try {
-        const [movieRes, creditsRes, providersRes] = await Promise.all([
+        const [movieRes, creditsRes, providersRes, videosRes, similarRes] = await Promise.all([
           fetch(`${API_BASE_URL}/movies/${id}`),
           fetch(`${API_BASE_URL}/movies/${id}/credits`),
-          fetch(`${API_BASE_URL}/movies/${id}/providers`)
+          fetch(`${API_BASE_URL}/movies/${id}/providers`),
+          fetch(`${API_BASE_URL}/movies/${id}/videos`),
+          fetch(`${API_BASE_URL}/movies/${id}/similar`)
         ]);
         const movieData = await movieRes.json();
         const creditsData = await creditsRes.json();
         const providersData = await providersRes.json();
+        const videosData = await videosRes.json();
+        const similarData = await similarRes.json();
 
         if (!movieRes.ok) { setError(movieData?.error || 'Failed to load movie.'); return; }
 
         setMovie(movieData);
         setCast(creditsData.cast?.slice(0, 8) || []);
+
+        const directorEntry = creditsData.crew?.find((c) => c.job === 'Director');
+        setDirector(directorEntry?.name || null);
+
         setProviders(providersData.results?.US || null);
+
+        const officialTrailer =
+          videosData.results?.find((v) => v.type === 'Trailer' && v.site === 'YouTube') ||
+          videosData.results?.find((v) => v.site === 'YouTube');
+        setTrailer(officialTrailer || null);
+
+        setSimilar(similarData.results?.filter((m) => m.poster_path).slice(0, 6) || []);
       } catch {
         setError('Network error');
       } finally {
@@ -41,6 +61,17 @@ export default function MovieDetails() {
     };
     fetchAll();
   }, [id]);
+
+  const buildWatchlistPayload = (isWatched = false) => ({
+    tmdbMovieId: movie.id,
+    title: movie.title,
+    posterPath: movie.poster_path || null,
+    runtime: movie.runtime || null,
+    genres: movie.genres?.map((g) => g.name).join(',') || null,
+    releaseYear: movie.release_date ? parseInt(movie.release_date.split('-')[0]) : null,
+    director: director || null,
+    isWatched
+  });
 
   const handleAddToWatchlist = async () => {
     if (!movie || adding) return;
@@ -51,14 +82,7 @@ export default function MovieDetails() {
       const res = await fetch(`${API_BASE_URL}/watchlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          tmdbMovieId: movie.id,
-          title: movie.title,
-          posterPath: movie.poster_path || null,
-          runtime: movie.runtime || null,
-          genres: movie.genres?.map((g) => g.name).join(',') || null,
-          releaseYear: movie.release_date ? parseInt(movie.release_date.split('-')[0]) : null
-        })
+        body: JSON.stringify(buildWatchlistPayload(false))
       });
       const data = await res.json();
       if (!res.ok) { setError(data?.error || 'Failed to add to watchlist'); return; }
@@ -67,6 +91,27 @@ export default function MovieDetails() {
       setError('Network error');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleAlreadySeen = async () => {
+    if (!movie || addingAsSeen) return;
+    setError('');
+    setSuccess('');
+    setAddingAsSeen(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/watchlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(buildWatchlistPayload(true))
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data?.error || 'Failed to add'); return; }
+      setSuccess('Logged as watched!');
+    } catch {
+      setError('Network error');
+    } finally {
+      setAddingAsSeen(false);
     }
   };
 
@@ -89,11 +134,38 @@ export default function MovieDetails() {
 
   const streamingProviders = providers?.flatrate || [];
   const rentProviders = providers?.rent || [];
-  const buyProviders = providers?.buy || [];
-  const hasProviders = streamingProviders.length > 0 || rentProviders.length > 0 || buyProviders.length > 0;
+  const hasProviders = streamingProviders.length > 0 || rentProviders.length > 0;
+  const alreadyAdded = success.length > 0;
 
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-12 reveal">
+      {/* Trailer modal */}
+      {showTrailer && trailer && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm"
+          onClick={() => setShowTrailer(false)}
+        >
+          <div className="relative mx-4 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <div className="aspect-video overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+              <iframe
+                src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1`}
+                title="Trailer"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                className="h-full w-full"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowTrailer(false)}
+              className="mt-4 rounded-full border border-white/10 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:text-white"
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-2xl"
         style={
@@ -121,6 +193,7 @@ export default function MovieDetails() {
                 {movie.vote_average > 0 && (
                   <span className="text-yellow-400">★ {movie.vote_average.toFixed(1)} / 10</span>
                 )}
+                {director && <span className="text-slate-400">Dir. {director}</span>}
               </div>
               {movie.genres?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -133,15 +206,34 @@ export default function MovieDetails() {
               )}
               <p className="mt-6 text-sm leading-relaxed text-slate-300">{movie.overview}</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
+                {trailer && (
+                  <button
+                    type="button"
+                    onClick={() => setShowTrailer(true)}
+                    className="rounded-full border border-white/10 bg-slate-800 px-5 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
+                  >
+                    ▶ Watch Trailer
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleAddToWatchlist}
-                  disabled={adding || Boolean(success)}
+                  disabled={adding || alreadyAdded}
                   className={`rounded-full px-5 py-2 text-xs font-semibold text-white transition ${
-                    success ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'
+                    success === 'Added to watchlist!' ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'
                   }`}
                 >
-                  {adding ? 'Adding…' : success ? '✓ Added' : 'Add to Watchlist'}
+                  {adding ? 'Adding…' : success === 'Added to watchlist!' ? '✓ Added' : 'Add to Watchlist'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAlreadySeen}
+                  disabled={addingAsSeen || alreadyAdded}
+                  className={`rounded-full border px-5 py-2 text-xs font-semibold transition ${
+                    success === 'Logged as watched!' ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-800 text-slate-300 hover:border-white/20 hover:text-white disabled:opacity-60'
+                  }`}
+                >
+                  {addingAsSeen ? 'Logging…' : success === 'Logged as watched!' ? '✓ Logged' : 'Already seen it'}
                 </button>
                 {error && <p className="text-xs text-red-400">{error}</p>}
               </div>
@@ -226,6 +318,27 @@ export default function MovieDetails() {
                   )}
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Similar movies */}
+      {similar.length > 0 && (
+        <div className="mt-10 reveal">
+          <h2 className="text-lg font-semibold text-slate-100">You might also like</h2>
+          <div className="mt-4 grid grid-cols-3 gap-4 sm:grid-cols-6">
+            {similar.map((m) => (
+              <Link key={m.id} to={`/movies/${m.id}`} className="group flex flex-col gap-2">
+                <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-800">
+                  <img
+                    src={`https://image.tmdb.org/t/p/w300${m.poster_path}`}
+                    alt={m.title}
+                    className="h-32 w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <p className="text-[11px] font-semibold leading-tight text-slate-300 group-hover:text-red-300">{m.title}</p>
+              </Link>
             ))}
           </div>
         </div>
