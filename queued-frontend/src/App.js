@@ -14,24 +14,35 @@ function AppRoutes() {
   const location = useLocation();
 
   useEffect(() => {
-    const elements = Array.from(document.querySelectorAll('.reveal'));
-    if (!elements.length) return;
-
-    const observer = new IntersectionObserver(
+    const intersectionObs = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
+            intersectionObs.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.1 }
     );
 
-    elements.forEach((el) => observer.observe(el));
+    const observeRevealElements = () => {
+      document.querySelectorAll('.reveal:not(.is-visible)').forEach((el) => {
+        intersectionObs.observe(el);
+      });
+    };
 
-    return () => observer.disconnect();
+    // Observe elements already in DOM
+    observeRevealElements();
+
+    // Also watch for elements added later (e.g. after async data loads)
+    const mutationObs = new MutationObserver(observeRevealElements);
+    mutationObs.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      intersectionObs.disconnect();
+      mutationObs.disconnect();
+    };
   }, [location.pathname]);
 
   return (
