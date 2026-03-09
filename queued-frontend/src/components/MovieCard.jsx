@@ -20,30 +20,33 @@ const MovieCard = ({ title, posterPath, description, actions, children, tmdbId, 
   useEffect(() => {
     if (!posterPath) return;
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.src = `https://image.tmdb.org/t/p/w500${posterPath}`;
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return;
-      const size = 12;
-      canvas.width = size;
-      canvas.height = size;
-      ctx.drawImage(img, 0, 0, size, size);
-      const { data } = ctx.getImageData(0, 0, size, size);
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      const total = data.length / 4;
-      for (let i = 0; i < data.length; i += 4) {
-        r += data[i];
-        g += data[i + 1];
-        b += data[i + 2];
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        const size = 12;
+        canvas.width = size;
+        canvas.height = size;
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        const total = data.length / 4;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+        }
+        r = Math.round(r / total);
+        g = Math.round(g / total);
+        b = Math.round(b / total);
+        setGlowColor(`rgba(${r}, ${g}, ${b}, 0.35)`);
+      } catch {
+        // Canvas tainted (cross-origin) — keep default glow color
       }
-      r = Math.round(r / total);
-      g = Math.round(g / total);
-      b = Math.round(b / total);
-      setGlowColor(`rgba(${r}, ${g}, ${b}, 0.35)`);
     };
   }, [posterPath]);
 
