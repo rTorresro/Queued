@@ -24,35 +24,41 @@ export default function MovieDetails() {
       setError('');
       setLoading(true);
       try {
+        const safeJson = async (res) => {
+          try { return await res.json(); } catch { return null; }
+        };
+
         const [movieRes, creditsRes, providersRes, videosRes, similarRes] = await Promise.all([
           fetch(`${API_BASE_URL}/movies/${id}`),
           fetch(`${API_BASE_URL}/movies/${id}/credits`),
           fetch(`${API_BASE_URL}/movies/${id}/providers`),
-          fetch(`${API_BASE_URL}/movies/${id}/videos`),
-          fetch(`${API_BASE_URL}/movies/${id}/similar`)
+          fetch(`${API_BASE_URL}/movies/${id}/videos`).catch(() => null),
+          fetch(`${API_BASE_URL}/movies/${id}/similar`).catch(() => null)
         ]);
-        const movieData = await movieRes.json();
-        const creditsData = await creditsRes.json();
-        const providersData = await providersRes.json();
-        const videosData = await videosRes.json();
-        const similarData = await similarRes.json();
+
+        const movieData = await safeJson(movieRes);
+        const creditsData = await safeJson(creditsRes);
+        const providersData = await safeJson(providersRes);
+        const videosData = videosRes ? await safeJson(videosRes) : null;
+        const similarData = similarRes ? await safeJson(similarRes) : null;
 
         if (!movieRes.ok) { setError(movieData?.error || 'Failed to load movie.'); return; }
 
         setMovie(movieData);
-        setCast(creditsData.cast?.slice(0, 8) || []);
+        setCast(creditsData?.cast?.slice(0, 8) || []);
 
-        const directorEntry = creditsData.crew?.find((c) => c.job === 'Director');
+        const directorEntry = creditsData?.crew?.find((c) => c.job === 'Director');
         setDirector(directorEntry?.name || null);
 
-        setProviders(providersData.results?.US || null);
+        setProviders(providersData?.results?.US || null);
 
         const officialTrailer =
-          videosData.results?.find((v) => v.type === 'Trailer' && v.site === 'YouTube') ||
-          videosData.results?.find((v) => v.site === 'YouTube');
-        setTrailer(officialTrailer || null);
+          videosData?.results?.find((v) => v.type === 'Trailer' && v.site === 'YouTube') ||
+          videosData?.results?.find((v) => v.site === 'YouTube') ||
+          null;
+        setTrailer(officialTrailer);
 
-        setSimilar(similarData.results?.filter((m) => m.poster_path).slice(0, 6) || []);
+        setSimilar(similarData?.results?.filter((m) => m.poster_path).slice(0, 6) || []);
       } catch {
         setError('Network error');
       } finally {
