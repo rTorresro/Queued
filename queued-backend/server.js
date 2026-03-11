@@ -9,6 +9,14 @@ const authenticateToken = require('./middleware/auth');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 require('dotenv').config();
 
+const GENRE_IDS = {
+  'Action': 28, 'Adventure': 12, 'Animation': 16, 'Comedy': 35,
+  'Crime': 80, 'Documentary': 99, 'Drama': 18, 'Family': 10751,
+  'Fantasy': 14, 'History': 36, 'Horror': 27, 'Music': 10402,
+  'Mystery': 9648, 'Romance': 10749, 'Sci-Fi': 878, 'Science Fiction': 878,
+  'Thriller': 53, 'War': 10752, 'Western': 37
+};
+
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
@@ -106,6 +114,29 @@ app.get('/movies/:id/providers', async (req, res) => {
     });
     return res.json(response.data);
   } catch (error) {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
+app.get('/movies/recommend', async (req, res) => {
+  const apiKey = process.env.TMDB_API_KEY;
+  const { genres } = req.query;
+  if (!apiKey) return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
+  const genreIds = genres
+    ? genres.split(',').map((g) => GENRE_IDS[g.trim()]).filter(Boolean).join(',')
+    : '';
+  try {
+    const response = await axios.get('https://api.themoviedb.org/3/discover/movie', {
+      params: {
+        api_key: apiKey,
+        with_genres: genreIds || undefined,
+        sort_by: 'popularity.desc',
+        'vote_count.gte': 200,
+        page: 1
+      }
+    });
+    return res.json(response.data);
+  } catch {
     return res.status(502).json({ error: 'TMDB request failed.' });
   }
 });
@@ -322,7 +353,7 @@ app.patch('/watchlist/:id', authenticateToken, async (req, res) => {
   
   try {
     const { id } = req.params;
-    const { isWatched, rating, notes } = req.body;
+    const { isWatched, rating, notes, rewatchCount } = req.body;
     const userId = req.userId;
 
     // Make sure the item belongs to this user
@@ -341,6 +372,7 @@ app.patch('/watchlist/:id', authenticateToken, async (req, res) => {
     if (isWatched !== undefined) updateData.is_watched = isWatched;
     if (rating !== undefined) updateData.rating = rating;
     if (notes !== undefined) updateData.notes = notes;
+    if (rewatchCount !== undefined) updateData.rewatch_count = rewatchCount;
 
     const updatedItem = await prisma.watchlist_items.update({
       where: { id: parseInt(id) },

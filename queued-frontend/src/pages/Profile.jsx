@@ -76,6 +76,22 @@ export default function Profile() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
+    // Year in review
+    const currentYear = new Date().getFullYear();
+    const thisYear = items.filter((i) => i.is_watched && new Date(i.added_at).getFullYear() === currentYear);
+    const yearMovies = thisYear.length;
+    const yearMinutes = thisYear.filter((i) => i.runtime).reduce((s, i) => s + i.runtime, 0);
+    const yearHours = Math.floor(yearMinutes / 60);
+    const yearGenreCounts = {};
+    thisYear.filter((i) => i.genres).forEach((i) => {
+      i.genres.split(',').forEach((g) => {
+        const genre = g.trim();
+        if (genre) yearGenreCounts[genre] = (yearGenreCounts[genre] || 0) + 1;
+      });
+    });
+    const yearTopGenre = Object.entries(yearGenreCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const yearBest = thisYear.filter((i) => i.rating).sort((a, b) => (b.rating || 0) - (a.rating || 0))[0] || null;
+
     // Top rated
     const topRated = [...items]
       .filter((i) => i.rating !== null)
@@ -96,7 +112,8 @@ export default function Profile() {
       topGenres, maxGenreCount,
       decades, maxDecadeCount,
       topDirectors,
-      topRated, distribution, maxCount
+      topRated, distribution, maxCount,
+      yearMovies, yearHours, yearTopGenre, yearBest, currentYear
     };
   }, [items]);
 
@@ -132,6 +149,30 @@ export default function Profile() {
                 </div>
               ))}
             </div>
+
+            {/* Year in Review */}
+            {stats.yearMovies > 0 && (
+              <div className="mt-8 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/30 to-slate-900/70 p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">{stats.currentYear} so far</p>
+                <h2 className="mt-2 text-base font-semibold text-slate-100">Your year in film</h2>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {[
+                    { label: 'Films watched', value: stats.yearMovies, color: 'text-slate-100' },
+                    { label: 'Hours watched', value: stats.yearHours > 0 ? `${stats.yearHours}h` : '—', color: 'text-red-400' },
+                    { label: 'Top genre', value: stats.yearTopGenre || '—', color: 'text-purple-400' },
+                    { label: 'Best rated', value: stats.yearBest ? `${stats.yearBest.rating}/10` : '—', color: 'text-yellow-400' }
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl border border-white/5 bg-slate-900/50 p-3">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500">{s.label}</p>
+                      <p className={`mt-2 text-xl font-bold ${s.color}`}>{s.value}</p>
+                      {s.label === 'Best rated' && stats.yearBest && (
+                        <p className="mt-1 text-[10px] leading-tight text-slate-500 truncate">{stats.yearBest.title}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Genre taste */}
             {stats.topGenres.length > 0 && (

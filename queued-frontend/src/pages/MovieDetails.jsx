@@ -18,6 +18,8 @@ export default function MovieDetails() {
   const [adding, setAdding] = useState(false);
   const [addingAsSeen, setAddingAsSeen] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [addedItemId, setAddedItemId] = useState(null);
+  const [undoVisible, setUndoVisible] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -114,11 +116,27 @@ export default function MovieDetails() {
       const data = await res.json();
       if (!res.ok) { setError(data?.error || 'Failed to add'); return; }
       setSuccess('Logged as watched!');
+      setAddedItemId(data.id);
+      setUndoVisible(true);
+      setTimeout(() => setUndoVisible(false), 5000);
     } catch {
       setError('Network error');
     } finally {
       setAddingAsSeen(false);
     }
+  };
+
+  const handleUndo = async () => {
+    if (!addedItemId) return;
+    try {
+      await fetch(`${API_BASE_URL}/watchlist/${addedItemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess('');
+      setAddedItemId(null);
+      setUndoVisible(false);
+    } catch { /* silent */ }
   };
 
   if (loading) {
@@ -142,6 +160,7 @@ export default function MovieDetails() {
   const rentProviders = providers?.rent || [];
   const hasProviders = streamingProviders.length > 0 || rentProviders.length > 0;
   const alreadyAdded = success.length > 0;
+  const lastSearch = sessionStorage.getItem('queued_last_search');
 
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-12 reveal">
@@ -182,7 +201,7 @@ export default function MovieDetails() {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/70 to-slate-900/30" />
         <div className="relative">
-          <Link to="/search" className="text-xs font-semibold text-red-300">← Back to search</Link>
+          <Link to={lastSearch ? `/search?query=${encodeURIComponent(lastSearch)}` : '/search'} className="text-xs font-semibold text-red-300">← Back to search</Link>
           <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-xl">
               {movie.poster_path ? (
@@ -241,6 +260,11 @@ export default function MovieDetails() {
                 >
                   {addingAsSeen ? 'Logging…' : success === 'Logged as watched!' ? '✓ Logged' : 'Already seen it'}
                 </button>
+                {undoVisible && (
+                  <button type="button" onClick={handleUndo} className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20">
+                    Undo
+                  </button>
+                )}
                 {error && <p className="text-xs text-red-400">{error}</p>}
               </div>
             </div>
