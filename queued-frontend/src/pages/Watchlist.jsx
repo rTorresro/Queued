@@ -229,6 +229,18 @@ export default function Watchlist() {
     } catch { /* silent */ }
   };
 
+  const handleRewatch = async (item) => {
+    const newCount = (item.rewatch_count || 0) + 1;
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, rewatch_count: newCount } : i)));
+    try {
+      await fetch(`${API_BASE_URL}/watchlist/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ rewatchCount: newCount })
+      });
+    } catch { /* silent */ }
+  };
+
   return (
     <section id="watchlist" className="mx-auto w-full max-w-6xl px-6 py-10 reveal">
       {surpriseItem && (
@@ -428,6 +440,15 @@ export default function Watchlist() {
                   >
                     {item.is_watched ? '✓ Watched' : 'Not Watched'}
                   </button>
+                  {item.is_watched && (
+                    <button
+                      type="button"
+                      onClick={() => handleRewatch(item)}
+                      className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-purple-500/40 hover:text-purple-300"
+                    >
+                      ↺ Rewatch{item.rewatch_count > 0 ? ` (${item.rewatch_count}×)` : ''}
+                    </button>
+                  )}
                   {!item.is_watched && (
                     <button
                       type="button"

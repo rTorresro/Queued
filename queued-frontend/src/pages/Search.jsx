@@ -54,6 +54,7 @@ export default function Search() {
       const data = await res.json();
       if (!res.ok) { setError(data?.error || 'Search failed'); return; }
       setResults(data.results || []);
+      if (data.results?.length > 0) sessionStorage.setItem('queued_last_search', searchTerm);
     } catch {
       setError('Network error');
     } finally {
