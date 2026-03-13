@@ -7,6 +7,7 @@ import Search from './pages/Search';
 import Watchlist from './pages/Watchlist';
 import MovieDetails from './pages/MovieDetails';
 import Profile from './pages/Profile';
+import Diary from './pages/Diary';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/NavBar';
 
@@ -32,10 +33,8 @@ function AppRoutes() {
       });
     };
 
-    // Observe elements already in DOM
     observeRevealElements();
 
-    // Also watch for elements added later (e.g. after async data loads)
     const mutationObs = new MutationObserver(observeRevealElements);
     mutationObs.observe(document.body, { childList: true, subtree: true });
 
@@ -51,38 +50,11 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route
-          path="/search"
-          element={
-            <ProtectedRoute>
-              <Search />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/watchlist"
-          element={
-            <ProtectedRoute>
-              <Watchlist />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/movies/:id"
-          element={
-            <ProtectedRoute>
-              <MovieDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+        <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
+        <Route path="/movies/:id" element={<ProtectedRoute><MovieDetails /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
       </Routes>
     </div>
   );

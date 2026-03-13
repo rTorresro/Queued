@@ -36,6 +36,7 @@ const Navbar = () => {
       <Link className={linkClass('/dashboard')} to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
       <Link className={linkClass('/search')} to="/search" onClick={() => setMenuOpen(false)}>Search</Link>
       <Link className={linkClass('/watchlist')} to="/watchlist" onClick={() => setMenuOpen(false)}>Watchlist</Link>
+      <Link className={linkClass('/diary')} to="/diary" onClick={() => setMenuOpen(false)}>Diary</Link>
       <Link className={linkClass('/profile')} to="/profile" onClick={() => setMenuOpen(false)}>Profile</Link>
       <button
         type="button"

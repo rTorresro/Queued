@@ -1,121 +1,45 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useAuth from '../hooks/useAuth';
-import API_BASE_URL from '../config';
+import { getWatchlist } from '../services/watchlist';
+import { getAIPersonality } from '../services/tmdb';
+import useWatchlistStats from '../hooks/useWatchlistStats';
+import { TMDB_IMAGE_BASE } from '../utils/constants';
 
 export default function Profile() {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [personality, setPersonality] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('queued_personality') || 'null'); } catch { return null; }
+  });
+  const [personalityLoading, setPersonalityLoading] = useState(false);
+  const [personalityError, setPersonalityError] = useState('');
 
   useEffect(() => {
-    const fetchWatchlist = async () => {
-      setError('');
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/watchlist`, { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
-        if (!res.ok) { setError(data?.error || 'Failed to load stats'); return; }
-        setItems(data || []);
-      } catch { setError('Network error'); }
-      finally { setLoading(false); }
-    };
-    fetchWatchlist();
+    setError('');
+    setLoading(true);
+    getWatchlist(token)
+      .then((data) => setItems(data || []))
+      .catch((err) => setError(err.message || 'Network error'))
+      .finally(() => setLoading(false));
   }, [token]);
 
-  const stats = useMemo(() => {
-    const total = items.length;
-    const watched = items.filter((i) => i.is_watched).length;
-    const rated = items.filter((i) => i.rating !== null).length;
-    const avgRating = rated
-      ? (items.reduce((sum, i) => sum + (i.rating || 0), 0) / rated).toFixed(1)
-      : '—';
+  const stats = useWatchlistStats(items);
 
-    // Hours watched
-    const totalMinutes = items
-      .filter((i) => i.is_watched && i.runtime)
-      .reduce((sum, i) => sum + i.runtime, 0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    // Genre breakdown (from watched movies only)
-    const genreCounts = {};
-    items
-      .filter((i) => i.is_watched && i.genres)
-      .forEach((i) => {
-        i.genres.split(',').forEach((g) => {
-          const genre = g.trim();
-          if (genre) genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-        });
-      });
-    const topGenres = Object.entries(genreCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
-    const maxGenreCount = topGenres[0]?.[1] || 1;
-
-    // Decade breakdown
-    const decadeCounts = {};
-    items
-      .filter((i) => i.is_watched && i.release_year)
-      .forEach((i) => {
-        const decade = Math.floor(i.release_year / 10) * 10;
-        decadeCounts[decade] = (decadeCounts[decade] || 0) + 1;
-      });
-    const decades = Object.entries(decadeCounts)
-      .sort((a, b) => Number(a[0]) - Number(b[0]));
-    const maxDecadeCount = Math.max(...decades.map(([, c]) => c), 1);
-
-    // Director breakdown
-    const directorCounts = {};
-    items
-      .filter((i) => i.is_watched && i.director)
-      .forEach((i) => {
-        directorCounts[i.director] = (directorCounts[i.director] || 0) + 1;
-      });
-    const topDirectors = Object.entries(directorCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    // Year in review
-    const currentYear = new Date().getFullYear();
-    const thisYear = items.filter((i) => i.is_watched && new Date(i.added_at).getFullYear() === currentYear);
-    const yearMovies = thisYear.length;
-    const yearMinutes = thisYear.filter((i) => i.runtime).reduce((s, i) => s + i.runtime, 0);
-    const yearHours = Math.floor(yearMinutes / 60);
-    const yearGenreCounts = {};
-    thisYear.filter((i) => i.genres).forEach((i) => {
-      i.genres.split(',').forEach((g) => {
-        const genre = g.trim();
-        if (genre) yearGenreCounts[genre] = (yearGenreCounts[genre] || 0) + 1;
-      });
-    });
-    const yearTopGenre = Object.entries(yearGenreCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-    const yearBest = thisYear.filter((i) => i.rating).sort((a, b) => (b.rating || 0) - (a.rating || 0))[0] || null;
-
-    // Top rated
-    const topRated = [...items]
-      .filter((i) => i.rating !== null)
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, 5);
-
-    // Ratings distribution
-    const distribution = [2, 4, 6, 8, 10].map((score) => ({
-      label: `${score / 2}★`,
-      score,
-      count: items.filter((i) => i.rating === score).length
-    }));
-    const maxCount = Math.max(...distribution.map((d) => d.count), 1);
-
-    return {
-      total, watched, rated, avgRating,
-      hours, minutes,
-      topGenres, maxGenreCount,
-      decades, maxDecadeCount,
-      topDirectors,
-      topRated, distribution, maxCount,
-      yearMovies, yearHours, yearTopGenre, yearBest, currentYear
-    };
-  }, [items]);
+  const handleGeneratePersonality = async () => {
+    setPersonalityLoading(true);
+    setPersonalityError('');
+    try {
+      const data = await getAIPersonality(token);
+      setPersonality(data);
+      sessionStorage.setItem('queued_personality', JSON.stringify(data));
+    } catch (err) {
+      setPersonalityError(err.message || 'Failed to generate personality.');
+    } finally {
+      setPersonalityLoading(false);
+    }
+  };
 
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-12 reveal">
@@ -137,7 +61,7 @@ export default function Profile() {
                 { label: 'Avg rating', value: stats.avgRating, color: 'text-yellow-400' },
                 {
                   label: 'Time watched',
-                  value: stats.hours > 0 ? `${stats.hours}h ${stats.minutes}m` : stats.watched > 0 ? '—' : '—',
+                  value: stats.hours > 0 ? `${stats.hours}h ${stats.minutes}m` : '—',
                   color: 'text-red-400',
                   sub: stats.hours > 0 ? 'from tracked runtimes' : null
                 }
@@ -149,6 +73,47 @@ export default function Profile() {
                 </div>
               ))}
             </div>
+
+            {/* Film Personality */}
+            {stats.watched >= 5 && (
+              <div className="mt-8 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/30 to-slate-900/70 p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">AI insight</p>
+                    <h2 className="mt-2 text-base font-semibold text-slate-100">Your film personality</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePersonality}
+                    disabled={personalityLoading}
+                    className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-4 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-600/20 disabled:opacity-50"
+                  >
+                    {personalityLoading ? 'Analyzing…' : personality ? 'Refresh' : 'Generate'}
+                  </button>
+                </div>
+                {personalityError && (
+                  <p className="mt-3 text-sm text-red-400">{personalityError}</p>
+                )}
+                {personalityLoading && (
+                  <div className="mt-4 space-y-2 animate-pulse">
+                    <div className="h-5 w-1/3 rounded bg-slate-800" />
+                    <div className="h-3 w-full rounded bg-slate-800" />
+                    <div className="h-3 w-4/5 rounded bg-slate-800" />
+                  </div>
+                )}
+                {!personalityLoading && personality && (
+                  <div className="mt-4">
+                    <p className="text-lg font-bold text-red-300">{personality.type}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">{personality.description}</p>
+                  </div>
+                )}
+                {!personalityLoading && !personality && !personalityError && (
+                  <p className="mt-3 text-sm text-slate-500">
+                    Click Generate to get an AI-written take on your film taste.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Year in Review */}
             {stats.yearMovies > 0 && (
@@ -186,10 +151,7 @@ export default function Profile() {
                       <div key={genre} className="flex items-center gap-3">
                         <span className="w-20 shrink-0 text-xs font-semibold text-slate-300">{genre}</span>
                         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
-                          <div
-                            className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-700"
-                            style={{ width: `${pct}%` }}
-                          />
+                          <div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-700" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="w-6 shrink-0 text-right text-xs text-slate-500">{count}</span>
                       </div>
@@ -211,10 +173,7 @@ export default function Profile() {
                       <div key={decade} className="flex flex-1 flex-col items-center gap-2">
                         <span className="text-[10px] font-semibold text-slate-400">{count}</span>
                         <div className="relative w-full overflow-hidden rounded-t-lg bg-slate-800" style={{ height: 64 }}>
-                          <div
-                            className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-red-600/80 to-red-400/50 transition-all duration-700"
-                            style={{ height: `${heightPct}%` }}
-                          />
+                          <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-red-600/80 to-red-400/50 transition-all duration-700" style={{ height: `${heightPct}%` }} />
                         </div>
                         <span className="text-[10px] text-slate-500">{decade}s</span>
                       </div>
@@ -256,15 +215,42 @@ export default function Profile() {
                       <div key={bucket.score} className="flex flex-1 flex-col items-center gap-2">
                         <span className="text-[10px] font-semibold text-slate-400">{bucket.count || ''}</span>
                         <div className="relative w-full overflow-hidden rounded-t-lg bg-slate-800" style={{ height: 64 }}>
-                          <div
-                            className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-yellow-500/80 to-yellow-400/50 transition-all duration-700"
-                            style={{ height: `${heightPct}%` }}
-                          />
+                          <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-yellow-500/80 to-yellow-400/50 transition-all duration-700" style={{ height: `${heightPct}%` }} />
                         </div>
                         <span className="text-[10px] text-slate-400">{bucket.label}</span>
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Mood analytics */}
+            {stats.moodStats.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-950/20 to-slate-900/70 p-6">
+                <h2 className="text-base font-semibold text-slate-100">Your watching moods</h2>
+                <p className="mt-1 text-xs text-slate-500">How you felt while watching each film</p>
+                {stats.moodInsight && (
+                  <p className="mt-3 text-sm text-purple-300/80 italic">"{stats.moodInsight}"</p>
+                )}
+                <div className="mt-5 space-y-2">
+                  {stats.moodStats.map((m) => (
+                    <div key={m.value} className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-xs font-semibold text-slate-300">{m.label}</span>
+                      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-700"
+                          style={{ width: `${Math.round((m.count / Math.max(...stats.moodStats.map((x) => x.count))) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="w-6 shrink-0 text-right text-xs text-slate-500">{m.count}</span>
+                      {m.avgRating !== null && (
+                        <span className="w-12 shrink-0 text-right text-xs font-semibold text-yellow-400">
+                          {m.avgRating.toFixed(1)}/10
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -278,7 +264,7 @@ export default function Profile() {
                   <div key={item.id} className="flex items-center gap-4">
                     <span className="w-5 shrink-0 text-center text-xs font-bold text-slate-600">#{index + 1}</span>
                     {item.poster_path ? (
-                      <img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt={item.title} className="h-10 w-7 rounded object-cover" />
+                      <img src={`${TMDB_IMAGE_BASE}/w92${item.poster_path}`} alt={item.title} className="h-10 w-7 rounded object-cover" />
                     ) : (
                       <div className="h-10 w-7 rounded bg-slate-800" />
                     )}

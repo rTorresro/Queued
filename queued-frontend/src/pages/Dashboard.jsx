@@ -1,88 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
-import API_BASE_URL from '../config';
-
-function MonthlyGoal({ items }) {
-  const [goal, setGoal] = useState(() => parseInt(localStorage.getItem('queued_monthly_goal') || '0'));
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
-
-  const now = new Date();
-  const watchedThisMonth = items.filter((i) => {
-    if (!i.is_watched || !i.added_at) return false;
-    const d = new Date(i.added_at);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-
-  const pct = goal > 0 ? Math.min(100, Math.round((watchedThisMonth / goal) * 100)) : 0;
-
-  const save = () => {
-    const val = parseInt(draft);
-    if (!isNaN(val) && val > 0) {
-      setGoal(val);
-      localStorage.setItem('queued_monthly_goal', String(val));
-    }
-    setEditing(false);
-  };
-
-  const monthName = now.toLocaleString('default', { month: 'long' });
-
-  return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-5 reveal">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">{monthName} goal</p>
-          {goal === 0 ? (
-            <p className="mt-1 text-sm text-slate-400">No goal set yet.</p>
-          ) : (
-            <p className="mt-1 text-sm font-semibold text-slate-100">
-              {watchedThisMonth} <span className="text-slate-500">/ {goal} movies</span>
-            </p>
-          )}
-        </div>
-        {editing ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="1"
-              max="99"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && save()}
-              autoFocus
-              className="w-16 rounded-full border border-white/10 bg-slate-800 px-3 py-1 text-center text-sm text-slate-100 focus:border-red-500/50 focus:outline-none"
-            />
-            <button type="button" onClick={save} className="rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-red-500">
-              Set
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => { setDraft(goal > 0 ? String(goal) : ''); setEditing(true); }}
-            className="rounded-full border border-white/10 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:text-slate-200"
-          >
-            {goal > 0 ? 'Edit goal' : 'Set goal'}
-          </button>
-        )}
-      </div>
-      {goal > 0 && (
-        <>
-          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-800">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? 'bg-emerald-500/80' : 'bg-red-500/70'}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <p className="mt-2 text-[10px] text-slate-600">
-            {pct >= 100 ? 'Goal reached! 🎉' : `${goal - watchedThisMonth} more to go`}
-          </p>
-        </>
-      )}
-    </div>
-  );
-}
+import { getWatchlist } from '../services/watchlist';
+import { getAIRecommendations } from '../services/tmdb';
+import MonthlyGoal from '../components/MonthlyGoal';
+import { TMDB_IMAGE_BASE, SLOW_LOAD_MS } from '../utils/constants';
 
 export default function Dashboard() {
   const { token } = useAuth();
@@ -90,20 +12,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [slowLoad, setSlowLoad] = useState(false);
-  const [recommendations, setRecommendations] = useState([]);
+  const [aiRecs, setAiRecs] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('queued_ai_recs') || 'null'); } catch { return null; }
+  });
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => setSlowLoad(true), 5000);
+    const timer = setTimeout(() => setSlowLoad(true), SLOW_LOAD_MS);
     const fetchWatchlist = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/watchlist`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (res.ok) setItems(data || []);
-        else setError(data?.error || 'Failed to load');
-      } catch {
-        setError('Network error');
+        const data = await getWatchlist(token);
+        setItems(data || []);
+      } catch (err) {
+        setError(err.message || 'Network error');
       } finally {
         clearTimeout(timer);
         setLoading(false);
@@ -114,33 +36,19 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [token]);
 
-  // Fetch recommendations based on top genres once watchlist loads
-  useEffect(() => {
-    if (loading || items.length === 0) return;
-    const genreCounts = {};
-    items.filter((i) => i.is_watched && i.genres).forEach((i) => {
-      i.genres.split(',').forEach((g) => {
-        const genre = g.trim();
-        if (genre) genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-      });
-    });
-    const topGenres = Object.entries(genreCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([g]) => g);
-    if (topGenres.length === 0) return;
-
-    const watchedIds = new Set(items.map((i) => i.tmdb_movie_id));
-    fetch(`${API_BASE_URL}/movies/recommend?genres=${encodeURIComponent(topGenres.join(','))}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const filtered = (data.results || [])
-          .filter((m) => m.poster_path && !watchedIds.has(m.id))
-          .slice(0, 6);
-        setRecommendations(filtered);
-      })
-      .catch(() => {});
-  }, [loading, items]);
+  const handleGetAIRecs = async () => {
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const data = await getAIRecommendations(token);
+      setAiRecs(data.recommendations);
+      sessionStorage.setItem('queued_ai_recs', JSON.stringify(data.recommendations));
+    } catch (err) {
+      setAiError(err.message || 'Failed to get recommendations.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -181,10 +89,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Slow load notice */}
       {slowLoad && (
         <div className="mt-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 px-5 py-4">
-          <p className="text-sm text-yellow-300/80">⏳ Server is warming up — this can take up to 30 seconds on first load. Hang tight...</p>
+          <p className="text-sm text-yellow-300/80">Server is warming up — this can take up to 30 seconds on first load.</p>
         </div>
       )}
 
@@ -218,7 +125,6 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Progress bar */}
           {stats.total > 0 && (
             <div className="mt-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5 reveal">
               <div className="flex items-center justify-between text-xs text-slate-400">
@@ -234,11 +140,9 @@ export default function Dashboard() {
 
           <MonthlyGoal items={items} />
 
-          {/* Empty state */}
           {stats.total === 0 && (
             <div className="mt-8 rounded-2xl border border-white/10 bg-slate-950/70 p-10 text-center reveal">
-              <p className="text-2xl">🎬</p>
-              <h2 className="mt-3 text-lg font-semibold text-slate-100">Your queue is empty</h2>
+              <h2 className="text-lg font-semibold text-slate-100">Your queue is empty</h2>
               <p className="mt-2 text-sm text-slate-400">Start by searching for a movie you want to watch.</p>
               <Link to="/search" className="mt-6 inline-flex rounded-full bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500">
                 Find something to watch →
@@ -246,7 +150,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Next up */}
           {nextUp.length > 0 && (
             <div className="mt-10 reveal">
               <div className="flex items-center justify-between">
@@ -262,7 +165,7 @@ export default function Dashboard() {
                     className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 transition hover:border-red-500/30"
                   >
                     {item.poster_path ? (
-                      <img src={`https://image.tmdb.org/t/p/w300${item.poster_path}`} alt={item.title} className="h-36 w-full object-cover transition duration-300 group-hover:scale-105" />
+                      <img src={`${TMDB_IMAGE_BASE}/w300${item.poster_path}`} alt={item.title} className="h-36 w-full object-cover transition duration-300 group-hover:scale-105" />
                     ) : (
                       <div className="flex h-36 items-center justify-center bg-slate-800 text-xs text-slate-500">No image</div>
                     )}
@@ -275,21 +178,69 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Recommendations */}
-          {recommendations.length > 0 && (
+          {/* AI Recommendations */}
+          {items.filter((i) => i.is_watched).length > 0 && (
             <div className="mt-10 reveal">
-              <h2 className="text-lg font-semibold text-slate-100">Recommended for you</h2>
-              <p className="mt-1 text-sm text-slate-400">Based on genres you love.</p>
-              <div className="mt-4 grid gap-3 grid-cols-3 sm:grid-cols-6">
-                {recommendations.map((m) => (
-                  <Link key={m.id} to={`/movies/${m.id}`} className="group flex flex-col gap-2">
-                    <div className="overflow-hidden rounded-xl border border-white/10">
-                      <img src={`https://image.tmdb.org/t/p/w300${m.poster_path}`} alt={m.title} className="h-28 w-full object-cover transition duration-300 group-hover:scale-105" />
-                    </div>
-                    <p className="text-[10px] font-semibold leading-tight text-slate-400 group-hover:text-red-300 line-clamp-2">{m.title}</p>
-                  </Link>
-                ))}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-100">AI picks for you</h2>
+                  <p className="mt-1 text-sm text-slate-400">Personalized recommendations with reasons.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGetAIRecs}
+                  disabled={aiLoading}
+                  className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-5 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-600/20 disabled:opacity-50"
+                >
+                  {aiLoading ? 'Generating...' : aiRecs ? 'Refresh' : 'Generate'}
+                </button>
               </div>
+              {aiError && <p className="mt-3 text-sm text-red-400">{aiError}</p>}
+              {aiLoading && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="animate-pulse rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+                      <div className="h-3 w-2/3 rounded bg-slate-800" />
+                      <div className="mt-3 h-12 rounded bg-slate-800" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!aiLoading && aiRecs && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {aiRecs.map((rec, i) => (
+                    <div key={i} className="group flex gap-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 p-3 transition hover:border-red-500/20">
+                      {rec.poster_path ? (
+                        rec.tmdb_id ? (
+                          <Link to={`/movies/${rec.tmdb_id}`} className="shrink-0">
+                            <img src={`${TMDB_IMAGE_BASE}/w185${rec.poster_path}`} alt={rec.title} className="h-20 w-14 rounded-lg object-cover" />
+                          </Link>
+                        ) : (
+                          <img src={`${TMDB_IMAGE_BASE}/w185${rec.poster_path}`} alt={rec.title} className="h-20 w-14 shrink-0 rounded-lg object-cover" />
+                        )
+                      ) : (
+                        <div className="h-20 w-14 shrink-0 rounded-lg bg-slate-800" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        {rec.tmdb_id ? (
+                          <Link to={`/movies/${rec.tmdb_id}`} className="text-sm font-semibold text-slate-100 hover:text-red-300 line-clamp-1">
+                            {rec.title}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-semibold text-slate-100 line-clamp-1">{rec.title}</p>
+                        )}
+                        {rec.year && <p className="text-[10px] text-slate-500">{rec.year}</p>}
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400 italic line-clamp-3">{rec.reason}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!aiLoading && !aiRecs && !aiError && (
+                <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-slate-900/40 p-8 text-center">
+                  <p className="text-sm text-slate-500">Click Generate to get personalized picks based on your taste.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -302,7 +253,7 @@ export default function Dashboard() {
                   {recentlyAdded.map((item) => (
                     <Link key={item.id} to={`/movies/${item.tmdb_movie_id}`} className="flex items-center gap-3 rounded-xl border border-white/5 bg-slate-950/50 p-2 transition hover:border-red-500/20">
                       {item.poster_path ? (
-                        <img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt={item.title} className="h-12 w-8 rounded-lg object-cover" />
+                        <img src={`${TMDB_IMAGE_BASE}/w92${item.poster_path}`} alt={item.title} className="h-12 w-8 rounded-lg object-cover" />
                       ) : (
                         <div className="h-12 w-8 rounded-lg bg-slate-800" />
                       )}
@@ -323,7 +274,7 @@ export default function Dashboard() {
                     <Link key={item.id} to={`/movies/${item.tmdb_movie_id}`} className="flex items-center gap-3 rounded-xl border border-white/5 bg-slate-950/50 p-2 transition hover:border-red-500/20">
                       <span className="w-5 shrink-0 text-center text-xs font-bold text-slate-500">#{index + 1}</span>
                       {item.poster_path ? (
-                        <img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt={item.title} className="h-12 w-8 rounded-lg object-cover" />
+                        <img src={`${TMDB_IMAGE_BASE}/w92${item.poster_path}`} alt={item.title} className="h-12 w-8 rounded-lg object-cover" />
                       ) : (
                         <div className="h-12 w-8 rounded-lg bg-slate-800" />
                       )}
