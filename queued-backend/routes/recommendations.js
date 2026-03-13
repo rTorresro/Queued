@@ -257,5 +257,76 @@ Respond ONLY with valid JSON:
     }
   });
 
+  // AI rating prediction for a movie the user hasn't rated yet
+  router.post('/predict', authenticateToken, async (req, res) => {
+    try {
+      const { tmdbMovieId, title, genres, director, overview, releaseYear } = req.body;
+      if (!title) return res.status(400).json({ error: 'Movie title is required.' });
+
+      const watched = await prisma.watchlist_items.findMany({
+        where: { user_id: req.userId, is_watched: true, rating: { not: null } },
+        orderBy: { rating: 'desc' }
+      });
+
+      if (watched.length < 3) {
+        return res.status(400).json({ error: 'Rate at least 3 movies before using predictions.' });
+      }
+
+      const genreCounts = {};
+      watched.filter((i) => i.genres).forEach((i) => {
+        i.genres.split(',').forEach((g) => {
+          const genre = g.trim();
+          if (genre) genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+        });
+      });
+      const topGenres = Object.entries(genreCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([g]) => g);
+
+      const avgRating = (watched.reduce((s, i) => s + (i.rating || 0), 0) / watched.length).toFixed(1);
+      const loved = watched.filter((i) => i.rating >= 8).slice(0, 6);
+      const disliked = [...watched].sort((a, b) => (a.rating || 0) - (b.rating || 0)).filter((i) => i.rating <= 5).slice(0, 4);
+      const sameDirector = watched.filter((i) => i.director === director).length;
+
+      const prompt = `You are predicting how a specific cinephile would rate a movie, based on their rating history.
+
+Their taste profile:
+- Average rating: ${avgRating}/10
+- Top genres: ${topGenres.join(', ') || 'varied'}
+- Movies they loved (8+): ${loved.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ') || 'none yet'}
+- Movies they disliked (≤5): ${disliked.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ') || 'none'}
+${sameDirector > 0 ? `- They've rated ${sameDirector} other film(s) by ${director}` : ''}
+
+Movie to predict:
+- Title: "${title}"
+- Genres: ${genres || 'unknown'}
+- Director: ${director || 'unknown'}
+- Year: ${releaseYear || 'unknown'}
+- Overview: ${overview ? overview.slice(0, 200) : 'not available'}
+
+Predict the rating (1–10) this person would give. Be precise — use decimals if needed (e.g. 7.5). Reference specific data from their history.
+
+Respond ONLY with valid JSON:
+{ "predicted": 7.5, "confidence": "medium", "reasoning": "One sentence referencing their specific taste." }
+
+confidence must be "high", "medium", or "low" based on how much their history overlaps with this film.`;
+
+      const message = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      });
+
+      const result = parseClaudeJson(message.content[0].text);
+      return res.json(result);
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return res.status(502).json({ error: 'Failed to parse AI response.' });
+      }
+      return res.status(500).json({ error: 'Failed to generate prediction.' });
+    }
+  });
+
   return router;
 };

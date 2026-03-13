@@ -7,6 +7,7 @@ import {
   getMovieVideos,
   getSimilarMovies,
   getStreamingProviders,
+  getAIRatingPrediction,
 } from '../services/tmdb';
 import { addToWatchlist, deleteWatchlistItem } from '../services/watchlist';
 import { TMDB_IMAGE_BASE, UNDO_TIMEOUT_MS } from '../utils/constants';
@@ -28,6 +29,9 @@ export default function MovieDetails() {
   const [showTrailer, setShowTrailer] = useState(false);
   const [addedItemId, setAddedItemId] = useState(null);
   const [undoVisible, setUndoVisible] = useState(false);
+  const [prediction, setPrediction] = useState(null);
+  const [predicting, setPredicting] = useState(false);
+  const [predictionError, setPredictionError] = useState('');
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -107,6 +111,28 @@ export default function MovieDetails() {
       setError(err.message || 'Failed to add');
     } finally {
       setAddingAsSeen(false);
+    }
+  };
+
+  const handlePredictRating = async () => {
+    if (!movie || predicting) return;
+    setPredicting(true);
+    setPredictionError('');
+    setPrediction(null);
+    try {
+      const result = await getAIRatingPrediction(token, {
+        tmdbMovieId: movie.id,
+        title: movie.title,
+        genres: movie.genres?.map((g) => g.name).join(',') || null,
+        director: director || null,
+        overview: movie.overview || null,
+        releaseYear: movie.release_date ? parseInt(movie.release_date.split('-')[0]) : null,
+      });
+      setPrediction(result);
+    } catch (err) {
+      setPredictionError(err.message || 'Failed to generate prediction.');
+    } finally {
+      setPredicting(false);
     }
   };
 
@@ -230,6 +256,49 @@ export default function MovieDetails() {
                   </button>
                 )}
                 {error && <p className="text-xs text-red-400">{error}</p>}
+              </div>
+
+              {/* AI Rating Prediction */}
+              <div className="mt-6 border-t border-white/5 pt-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">What would you rate this?</p>
+                    <p className="text-[10px] text-slate-600">AI prediction based on your taste</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePredictRating}
+                    disabled={predicting}
+                    className="shrink-0 rounded-full border border-purple-500/30 bg-purple-600/10 px-4 py-1.5 text-xs font-semibold text-purple-300 transition hover:bg-purple-600/20 disabled:opacity-50"
+                  >
+                    {predicting ? 'Predicting…' : prediction ? 'Retry' : 'Predict'}
+                  </button>
+                </div>
+                {predictionError && (
+                  <p className="mt-2 text-xs text-red-400">{predictionError}</p>
+                )}
+                {prediction && (
+                  <div className="mt-3 rounded-2xl border border-purple-500/20 bg-purple-950/20 p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-extrabold text-purple-300">
+                        {prediction.predicted}
+                        <span className="text-base font-normal text-slate-500">/10</span>
+                      </span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                        prediction.confidence === 'high'
+                          ? 'border-emerald-500/30 bg-emerald-600/10 text-emerald-400'
+                          : prediction.confidence === 'low'
+                          ? 'border-yellow-500/30 bg-yellow-600/10 text-yellow-400'
+                          : 'border-slate-500/30 bg-slate-600/10 text-slate-400'
+                      }`}>
+                        {prediction.confidence} confidence
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs italic leading-relaxed text-slate-400">
+                      "{prediction.reasoning}"
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

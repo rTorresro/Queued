@@ -8,6 +8,7 @@ import Watchlist from './pages/Watchlist';
 import MovieDetails from './pages/MovieDetails';
 import Profile from './pages/Profile';
 import Diary from './pages/Diary';
+import DirectorDeepDive from './pages/DirectorDeepDive';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/NavBar';
 
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="/movies/:id" element={<ProtectedRoute><MovieDetails /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
+        <Route path="/director/:name" element={<ProtectedRoute><DirectorDeepDive /></ProtectedRoute>} />
       </Routes>
     </div>
   );

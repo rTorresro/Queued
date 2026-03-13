@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import { getWatchlist } from '../services/watchlist';
 import { getAIPersonality } from '../services/tmdb';
@@ -191,7 +192,12 @@ export default function Profile() {
                 <div className="mt-5 space-y-3">
                   {stats.topDirectors.map(([name, count]) => (
                     <div key={name} className="flex items-center gap-3">
-                      <span className="w-32 shrink-0 truncate text-xs font-semibold text-slate-300">{name}</span>
+                      <Link
+                        to={`/director/${encodeURIComponent(name)}`}
+                        className="w-32 shrink-0 truncate text-xs font-semibold text-slate-300 transition hover:text-red-300"
+                      >
+                        {name}
+                      </Link>
                       <div className="flex-1 flex gap-1">
                         {Array.from({ length: count }).map((_, i) => (
                           <div key={i} className="h-2 w-2 rounded-full bg-red-500/70" />
@@ -200,6 +206,7 @@ export default function Profile() {
                       <span className="w-8 shrink-0 text-right text-xs text-slate-500">{count} {count === 1 ? 'film' : 'films'}</span>
                     </div>
                   ))}
+                  <p className="mt-3 text-[10px] text-slate-600">Click a director to explore their filmography →</p>
                 </div>
               </div>
             )}
