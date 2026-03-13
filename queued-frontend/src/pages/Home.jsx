@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
-import API_BASE_URL from '../config';
+import { getTrendingMovies } from '../services/tmdb';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
@@ -18,11 +18,10 @@ export default function Home() {
   useEffect(() => {
     const fetchTrending = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/movies/trending`);
-        const data = await res.json();
+        const data = await getTrendingMovies();
         setTrending(data.results?.slice(0, 6) || []);
       } catch {
-        // fail silently
+        // non-critical, fail silently on landing page
       } finally {
         setTrendingLoading(false);
       }

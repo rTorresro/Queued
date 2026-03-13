@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import MovieCard from '../components/MovieCard';
-import API_BASE_URL from '../config';
+import { searchMovies } from '../services/tmdb';
+import { getWatchlist, addToWatchlist } from '../services/watchlist';
+import { SAVED_FEEDBACK_MS } from '../utils/constants';
 
 const GENRE_MAP = {
   28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy',
   80: 'Crime', 99: 'Documentary', 18: 'Drama', 10751: 'Family',
   14: 'Fantasy', 36: 'History', 27: 'Horror', 10402: 'Music',
   9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi', 10770: 'TV Movie',
-  53: 'Thriller', 10752: 'War', 37: 'Western'
+  53: 'Thriller', 10752: 'War', 37: 'Western',
 };
+
+const SUGGESTIONS = ['Dune', 'The Batman', 'Interstellar', 'Blade Runner 2049'];
 
 export default function Search() {
   const [query, setQuery] = useState('');
@@ -21,20 +25,17 @@ export default function Search() {
   const [addingId, setAddingId] = useState(null);
   const [addedId, setAddedId] = useState(null);
   const { token } = useAuth();
+  const location = useLocation();
+
   const headerBackdrop = results.find((m) => m.backdrop_path)?.backdrop_path || null;
-  const skeletonCards = Array.from({ length: 6 });
-  const suggestions = ['Dune', 'The Batman', 'Interstellar', 'Blade Runner 2049'];
   const topRated = results.reduce((best, movie) => {
     if (!movie.vote_average) return best;
-    if (!best) return movie;
-    return movie.vote_average > best.vote_average ? movie : best;
+    return !best || movie.vote_average > best.vote_average ? movie : best;
   }, null);
-  const location = useLocation();
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_BASE_URL}/watchlist`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => res.json())
+    getWatchlist(token)
       .then((data) => {
         if (Array.isArray(data)) setWatchlistIds(new Set(data.map((i) => i.tmdb_movie_id)));
       })
@@ -42,29 +43,26 @@ export default function Search() {
   }, [token]);
 
   const performSearch = async (searchTerm) => {
-    setError('');
-    setIsLoading(true);
     if (!searchTerm.trim()) {
       setError('Enter a movie title to search.');
-      setIsLoading(false);
       return;
     }
+    setError('');
+    setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/movies/search?query=${encodeURIComponent(searchTerm)}`);
-      const data = await res.json();
-      if (!res.ok) { setError(data?.error || 'Search failed'); return; }
+      const data = await searchMovies(searchTerm);
       setResults(data.results || []);
       if (data.results?.length > 0) sessionStorage.setItem('queued_last_search', searchTerm);
-    } catch {
-      setError('Network error');
+    } catch (err) {
+      setError(err.message || 'Search failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
-    await performSearch(query);
+    performSearch(query);
   };
 
   const handleAddToWatchlist = async (movie) => {
@@ -72,24 +70,18 @@ export default function Search() {
     const genres = movie.genre_ids?.map((id) => GENRE_MAP[id]).filter(Boolean).join(',') || null;
     const releaseYear = movie.release_date ? parseInt(movie.release_date.split('-')[0]) : null;
     try {
-      const res = await fetch(`${API_BASE_URL}/watchlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          tmdbMovieId: movie.id,
-          title: movie.title,
-          posterPath: movie.poster_path || null,
-          genres,
-          releaseYear
-        })
+      await addToWatchlist(token, {
+        tmdbMovieId: movie.id,
+        title: movie.title,
+        posterPath: movie.poster_path || null,
+        genres,
+        releaseYear,
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data?.error || 'Failed to add'); return; }
       setWatchlistIds((prev) => new Set([...prev, movie.id]));
       setAddedId(movie.id);
-      setTimeout(() => setAddedId(null), 2000);
-    } catch {
-      setError('Network error');
+      setTimeout(() => setAddedId(null), SAVED_FEEDBACK_MS);
+    } catch (err) {
+      setError(err.message || 'Failed to add to watchlist');
     } finally {
       setAddingId(null);
     }
@@ -102,7 +94,8 @@ export default function Search() {
       setQuery(searchTerm);
       performSearch(searchTerm);
     }
-  }, [location.search, query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   return (
     <section id="search" className="mx-auto w-full max-w-6xl px-6 py-10 reveal">
@@ -134,7 +127,7 @@ export default function Search() {
           </form>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-[0.25em] text-slate-500">Try</span>
-            {suggestions.map((item) => (
+            {SUGGESTIONS.map((item) => (
               <button
                 key={item}
                 type="button"
@@ -172,52 +165,46 @@ export default function Search() {
       </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 reveal">
-        {isLoading &&
-          skeletonCards.map((_, i) => (
-            <div key={`sk-${i}`} className="animate-pulse overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70">
-              <div className="h-56 w-full bg-slate-800" />
-              <div className="space-y-3 p-4">
-                <div className="h-4 w-3/4 rounded bg-slate-800" />
-                <div className="h-3 w-full rounded bg-slate-800" />
-                <div className="h-8 w-32 rounded-full bg-slate-800" />
-              </div>
+        {isLoading && Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70">
+            <div className="h-56 w-full bg-slate-800" />
+            <div className="space-y-3 p-4">
+              <div className="h-4 w-3/4 rounded bg-slate-800" />
+              <div className="h-3 w-full rounded bg-slate-800" />
+              <div className="h-8 w-32 rounded-full bg-slate-800" />
             </div>
-          ))}
-        {!isLoading &&
-          results.map((movie) => {
-            const inWatchlist = watchlistIds.has(movie.id);
-            const justAdded = addedId === movie.id;
-            return (
-              <MovieCard
-                key={movie.id}
-                title={movie.title}
-                posterPath={movie.poster_path}
-                description={movie.overview}
-                tmdbId={movie.id}
-                badge={inWatchlist ? 'In Watchlist' : undefined}
-                actions={
-                  inWatchlist ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-600/10 px-4 py-2 text-xs font-semibold text-emerald-300">
-                      ✓ In Watchlist
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleAddToWatchlist(movie)}
-                      disabled={addingId === movie.id}
-                      className={`rounded-full px-4 py-2 text-xs font-semibold text-white transition ${
-                        justAdded
-                          ? 'bg-emerald-600'
-                          : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'
-                      }`}
-                    >
-                      {addingId === movie.id ? 'Adding…' : justAdded ? '✓ Added' : 'Add to Watchlist'}
-                    </button>
-                  )
-                }
-              />
-            );
-          })}
+          </div>
+        ))}
+        {!isLoading && results.map((movie) => {
+          const inWatchlist = watchlistIds.has(movie.id);
+          const justAdded = addedId === movie.id;
+          return (
+            <MovieCard
+              key={movie.id}
+              title={movie.title}
+              posterPath={movie.poster_path}
+              description={movie.overview}
+              tmdbId={movie.id}
+              badge={inWatchlist ? 'In Watchlist' : undefined}
+              actions={
+                inWatchlist ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-600/10 px-4 py-2 text-xs font-semibold text-emerald-300">
+                    ✓ In Watchlist
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleAddToWatchlist(movie)}
+                    disabled={addingId === movie.id}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold text-white transition ${justAdded ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'}`}
+                  >
+                    {addingId === movie.id ? 'Adding…' : justAdded ? '✓ Added' : 'Add to Watchlist'}
+                  </button>
+                )
+              }
+            />
+          );
+        })}
       </div>
     </section>
   );

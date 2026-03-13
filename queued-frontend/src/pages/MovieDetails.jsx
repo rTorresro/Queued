@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
-import API_BASE_URL from '../config';
+import {
+  getMovie,
+  getMovieCredits,
+  getMovieVideos,
+  getSimilarMovies,
+  getStreamingProviders,
+} from '../services/tmdb';
+import { addToWatchlist, deleteWatchlistItem } from '../services/watchlist';
+import { TMDB_IMAGE_BASE, UNDO_TIMEOUT_MS } from '../utils/constants';
 
 export default function MovieDetails() {
   const { id } = useParams();
@@ -26,25 +34,13 @@ export default function MovieDetails() {
       setError('');
       setLoading(true);
       try {
-        const safeJson = async (res) => {
-          try { return await res.json(); } catch { return null; }
-        };
-
-        const [movieRes, creditsRes, providersRes, videosRes, similarRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/movies/${id}`),
-          fetch(`${API_BASE_URL}/movies/${id}/credits`),
-          fetch(`${API_BASE_URL}/movies/${id}/providers`),
-          fetch(`${API_BASE_URL}/movies/${id}/videos`).catch(() => null),
-          fetch(`${API_BASE_URL}/movies/${id}/similar`).catch(() => null)
+        const [movieData, creditsData, providersData, videosData, similarData] = await Promise.all([
+          getMovie(id),
+          getMovieCredits(id).catch(() => null),
+          getStreamingProviders(id).catch(() => null),
+          getMovieVideos(id).catch(() => null),
+          getSimilarMovies(id).catch(() => null),
         ]);
-
-        const movieData = await safeJson(movieRes);
-        const creditsData = await safeJson(creditsRes);
-        const providersData = await safeJson(providersRes);
-        const videosData = videosRes ? await safeJson(videosRes) : null;
-        const similarData = similarRes ? await safeJson(similarRes) : null;
-
-        if (!movieRes.ok) { setError(movieData?.error || 'Failed to load movie.'); return; }
 
         setMovie(movieData);
         setCast(creditsData?.cast?.slice(0, 8) || []);
@@ -61,8 +57,8 @@ export default function MovieDetails() {
         setTrailer(officialTrailer);
 
         setSimilar(similarData?.results?.filter((m) => m.poster_path).slice(0, 6) || []);
-      } catch {
-        setError('Network error');
+      } catch (err) {
+        setError(err.message || 'Failed to load movie.');
       } finally {
         setLoading(false);
       }
@@ -78,7 +74,7 @@ export default function MovieDetails() {
     genres: movie.genres?.map((g) => g.name).join(',') || null,
     releaseYear: movie.release_date ? parseInt(movie.release_date.split('-')[0]) : null,
     director: director || null,
-    isWatched
+    isWatched,
   });
 
   const handleAddToWatchlist = async () => {
@@ -87,16 +83,10 @@ export default function MovieDetails() {
     setSuccess('');
     setAdding(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/watchlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(buildWatchlistPayload(false))
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data?.error || 'Failed to add to watchlist'); return; }
+      await addToWatchlist(token, buildWatchlistPayload(false));
       setSuccess('Added to watchlist!');
-    } catch {
-      setError('Network error');
+    } catch (err) {
+      setError(err.message || 'Failed to add to watchlist');
     } finally {
       setAdding(false);
     }
@@ -108,19 +98,13 @@ export default function MovieDetails() {
     setSuccess('');
     setAddingAsSeen(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/watchlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(buildWatchlistPayload(true))
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data?.error || 'Failed to add'); return; }
+      const data = await addToWatchlist(token, buildWatchlistPayload(true));
       setSuccess('Logged as watched!');
       setAddedItemId(data.id);
       setUndoVisible(true);
-      setTimeout(() => setUndoVisible(false), 5000);
-    } catch {
-      setError('Network error');
+      setTimeout(() => setUndoVisible(false), UNDO_TIMEOUT_MS);
+    } catch (err) {
+      setError(err.message || 'Failed to add');
     } finally {
       setAddingAsSeen(false);
     }
@@ -129,14 +113,13 @@ export default function MovieDetails() {
   const handleUndo = async () => {
     if (!addedItemId) return;
     try {
-      await fetch(`${API_BASE_URL}/watchlist/${addedItemId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await deleteWatchlistItem(token, addedItemId);
       setSuccess('');
       setAddedItemId(null);
       setUndoVisible(false);
-    } catch { /* silent */ }
+    } catch (err) {
+      setError(err.message || 'Failed to undo');
+    }
   };
 
   if (loading) {
@@ -166,10 +149,7 @@ export default function MovieDetails() {
     <section className="mx-auto w-full max-w-6xl px-6 py-12 reveal">
       {/* Trailer modal */}
       {showTrailer && trailer && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm"
-          onClick={() => setShowTrailer(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm" onClick={() => setShowTrailer(false)}>
           <div className="relative mx-4 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
             <div className="aspect-video overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
               <iframe
@@ -180,11 +160,7 @@ export default function MovieDetails() {
                 className="h-full w-full"
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setShowTrailer(false)}
-              className="mt-4 rounded-full border border-white/10 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:text-white"
-            >
+            <button type="button" onClick={() => setShowTrailer(false)} className="mt-4 rounded-full border border-white/10 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:text-white">
               ✕ Close
             </button>
           </div>
@@ -195,7 +171,7 @@ export default function MovieDetails() {
         className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-2xl"
         style={
           movie.backdrop_path
-            ? { backgroundImage: `url(https://image.tmdb.org/t/p/w1280${movie.backdrop_path})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            ? { backgroundImage: `url(${TMDB_IMAGE_BASE}/w1280${movie.backdrop_path})`, backgroundSize: 'cover', backgroundPosition: 'center' }
             : undefined
         }
       >
@@ -205,7 +181,7 @@ export default function MovieDetails() {
           <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 shadow-xl">
               {movie.poster_path ? (
-                <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} className="h-full w-full object-cover" />
+                <img src={`${TMDB_IMAGE_BASE}/w500${movie.poster_path}`} alt={movie.title} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-80 items-center justify-center text-sm text-slate-400">No poster</div>
               )}
@@ -215,28 +191,20 @@ export default function MovieDetails() {
               <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
                 {movie.release_date && <span>{movie.release_date.split('-')[0]}</span>}
                 {movie.runtime > 0 && <span>{movie.runtime} min</span>}
-                {movie.vote_average > 0 && (
-                  <span className="text-yellow-400">★ {movie.vote_average.toFixed(1)} / 10</span>
-                )}
+                {movie.vote_average > 0 && <span className="text-yellow-400">★ {movie.vote_average.toFixed(1)} / 10</span>}
                 {director && <span className="text-slate-400">Dir. {director}</span>}
               </div>
               {movie.genres?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {movie.genres.map((genre) => (
-                    <span key={genre.id} className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs text-slate-200">
-                      {genre.name}
-                    </span>
+                    <span key={genre.id} className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs text-slate-200">{genre.name}</span>
                   ))}
                 </div>
               )}
               <p className="mt-6 text-sm leading-relaxed text-slate-300">{movie.overview}</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 {trailer && (
-                  <button
-                    type="button"
-                    onClick={() => setShowTrailer(true)}
-                    className="rounded-full border border-white/10 bg-slate-800 px-5 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
-                  >
+                  <button type="button" onClick={() => setShowTrailer(true)} className="rounded-full border border-white/10 bg-slate-800 px-5 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:text-white">
                     ▶ Watch Trailer
                   </button>
                 )}
@@ -244,9 +212,7 @@ export default function MovieDetails() {
                   type="button"
                   onClick={handleAddToWatchlist}
                   disabled={adding || alreadyAdded}
-                  className={`rounded-full px-5 py-2 text-xs font-semibold text-white transition ${
-                    success === 'Added to watchlist!' ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'
-                  }`}
+                  className={`rounded-full px-5 py-2 text-xs font-semibold text-white transition ${success === 'Added to watchlist!' ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'}`}
                 >
                   {adding ? 'Adding…' : success === 'Added to watchlist!' ? '✓ Added' : 'Add to Watchlist'}
                 </button>
@@ -254,9 +220,7 @@ export default function MovieDetails() {
                   type="button"
                   onClick={handleAlreadySeen}
                   disabled={addingAsSeen || alreadyAdded}
-                  className={`rounded-full border px-5 py-2 text-xs font-semibold transition ${
-                    success === 'Logged as watched!' ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-800 text-slate-300 hover:border-white/20 hover:text-white disabled:opacity-60'
-                  }`}
+                  className={`rounded-full border px-5 py-2 text-xs font-semibold transition ${success === 'Logged as watched!' ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-800 text-slate-300 hover:border-white/20 hover:text-white disabled:opacity-60'}`}
                 >
                   {addingAsSeen ? 'Logging…' : success === 'Logged as watched!' ? '✓ Logged' : 'Already seen it'}
                 </button>
@@ -285,11 +249,7 @@ export default function MovieDetails() {
                 <div className="flex flex-wrap gap-3">
                   {streamingProviders.map((p) => (
                     <div key={p.provider_id} className="flex flex-col items-center gap-1.5">
-                      <img
-                        src={`https://image.tmdb.org/t/p/w92${p.logo_path}`}
-                        alt={p.provider_name}
-                        className="h-12 w-12 rounded-xl border border-white/10 object-cover"
-                      />
+                      <img src={`${TMDB_IMAGE_BASE}/w92${p.logo_path}`} alt={p.provider_name} className="h-12 w-12 rounded-xl border border-white/10 object-cover" />
                       <span className="text-[10px] text-slate-400">{p.provider_name}</span>
                     </div>
                   ))}
@@ -302,11 +262,7 @@ export default function MovieDetails() {
                 <div className="flex flex-wrap gap-3">
                   {rentProviders.map((p) => (
                     <div key={p.provider_id} className="flex flex-col items-center gap-1.5">
-                      <img
-                        src={`https://image.tmdb.org/t/p/w92${p.logo_path}`}
-                        alt={p.provider_name}
-                        className="h-12 w-12 rounded-xl border border-white/10 object-cover opacity-80"
-                      />
+                      <img src={`${TMDB_IMAGE_BASE}/w92${p.logo_path}`} alt={p.provider_name} className="h-12 w-12 rounded-xl border border-white/10 object-cover opacity-80" />
                       <span className="text-[10px] text-slate-400">{p.provider_name}</span>
                     </div>
                   ))}
@@ -314,12 +270,7 @@ export default function MovieDetails() {
               </div>
             )}
             {providers?.link && (
-              <a
-                href={providers.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex text-xs text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
-              >
+              <a href={providers.link} target="_blank" rel="noopener noreferrer" className="inline-flex text-xs text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline">
                 See all options on JustWatch →
               </a>
             )}
@@ -336,16 +287,14 @@ export default function MovieDetails() {
               <div key={person.id} className="flex flex-col items-center gap-2">
                 <div className="h-16 w-16 overflow-hidden rounded-full border border-white/10 bg-slate-800">
                   {person.profile_path ? (
-                    <img src={`https://image.tmdb.org/t/p/w185${person.profile_path}`} alt={person.name} className="h-full w-full object-cover" />
+                    <img src={`${TMDB_IMAGE_BASE}/w185${person.profile_path}`} alt={person.name} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-600 text-lg">?</div>
                   )}
                 </div>
                 <div className="text-center">
                   <p className="text-[11px] font-semibold leading-tight text-slate-200">{person.name}</p>
-                  {person.character && (
-                    <p className="mt-0.5 text-[10px] leading-tight text-slate-500">{person.character}</p>
-                  )}
+                  {person.character && <p className="mt-0.5 text-[10px] leading-tight text-slate-500">{person.character}</p>}
                 </div>
               </div>
             ))}
@@ -361,11 +310,7 @@ export default function MovieDetails() {
             {similar.map((m) => (
               <Link key={m.id} to={`/movies/${m.id}`} className="group flex flex-col gap-2">
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-800">
-                  <img
-                    src={`https://image.tmdb.org/t/p/w300${m.poster_path}`}
-                    alt={m.title}
-                    className="h-32 w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
+                  <img src={`${TMDB_IMAGE_BASE}/w300${m.poster_path}`} alt={m.title} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
                 </div>
                 <p className="text-[11px] font-semibold leading-tight text-slate-300 group-hover:text-red-300">{m.title}</p>
               </Link>
