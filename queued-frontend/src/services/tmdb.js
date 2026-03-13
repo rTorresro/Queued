@@ -18,6 +18,12 @@ export const getSimilarMovies = (id) =>
 export const getStreamingProviders = (id) =>
   apiFetch(`/movies/${id}/providers`);
 
+export const getProvidersBatch = (ids) =>
+  apiFetch(`/movies/providers/batch?ids=${ids.join(',')}`);
+
+export const getDirectorFilmography = (name) =>
+  apiFetch(`/movies/director?name=${encodeURIComponent(name)}`);
+
 export const getTrendingMovies = () =>
   apiFetch('/movies/trending');
 
@@ -29,3 +35,6 @@ export const getAIPersonality = (token) =>
 
 export const getAIMoodPick = (token, { mood, runtime }) =>
   apiFetch('/recommendations/pick', { method: 'POST', body: { mood, runtime }, token });
+
+export const getAIRatingPrediction = (token, movieData) =>
+  apiFetch('/recommendations/predict', { method: 'POST', body: movieData, token });

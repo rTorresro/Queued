@@ -12,7 +12,6 @@ const GENRE_IDS = {
   'Thriller': 53, 'War': 10752, 'Western': 37
 };
 
-// Verify TMDB key exists before any movie route runs
 router.use((req, res, next) => {
   if (!process.env.TMDB_API_KEY) {
     return res.status(500).json({ error: 'TMDB_API_KEY missing on server.' });
@@ -61,6 +60,54 @@ router.get('/recommend', async (req, res) => {
       'vote_count.gte': 200,
       page: 1
     }));
+  } catch {
+    return res.status(502).json({ error: 'TMDB request failed.' });
+  }
+});
+
+// Batch streaming providers — must be before /:id routes
+router.get('/providers/batch', async (req, res) => {
+  const { ids } = req.query;
+  if (!ids) return res.status(400).json({ error: 'Missing ids parameter.' });
+
+  const idList = ids.split(',').map(Number).filter(Boolean).slice(0, 50);
+  const results = await Promise.all(
+    idList.map(async (id) => {
+      try {
+        const data = await tmdbGet(`/movie/${id}/watch/providers`);
+        const us = data.results?.US;
+        return { id, providers: [...(us?.flatrate || []), ...(us?.rent || [])] };
+      } catch {
+        return { id, providers: [] };
+      }
+    })
+  );
+
+  const map = {};
+  results.forEach(({ id, providers }) => { map[id] = providers; });
+  return res.json(map);
+});
+
+// Director filmography — must be before /:id routes
+router.get('/director', async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Missing name parameter.' });
+  try {
+    const searchData = await tmdbGet('/search/person', { query: name });
+    const person = searchData.results?.[0];
+    if (!person) return res.status(404).json({ error: 'Director not found.' });
+
+    const creditsData = await tmdbGet(`/person/${person.id}/movie_credits`);
+    const directed = (creditsData.crew || [])
+      .filter((m) => m.job === 'Director')
+      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+    return res.json({
+      id: person.id,
+      name: person.name,
+      profile_path: person.profile_path || null,
+      directed
+    });
   } catch {
     return res.status(502).json({ error: 'TMDB request failed.' });
   }

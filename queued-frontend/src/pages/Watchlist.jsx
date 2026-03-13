@@ -8,7 +8,8 @@ import MoodPicker from '../components/MoodPicker';
 import SurpriseMeModal from '../components/SurpriseMeModal';
 import AiPickerModal from '../components/AiPickerModal';
 import { getWatchlist, updateWatchlistItem, deleteWatchlistItem } from '../services/watchlist';
-import { getAIMoodPick } from '../services/tmdb';
+import { getAIMoodPick, getProvidersBatch } from '../services/tmdb';
+import { TMDB_IMAGE_BASE } from '../utils/constants';
 
 const FILTER_OPTIONS = ['All', 'Unwatched', 'Watched'];
 const SORT_OPTIONS = [
@@ -35,6 +36,8 @@ export default function Watchlist() {
   const [aiPickItem, setAiPickItem] = useState(null);
   const [aiPickReason, setAiPickReason] = useState('');
   const [showAiPicker, setShowAiPicker] = useState(false);
+  const [providerMap, setProviderMap] = useState({});
+  const [selectedService, setSelectedService] = useState(null);
   const [nextId, setNextId] = useState(() => {
     const stored = localStorage.getItem('queued_next_id');
     return stored ? parseInt(stored) : null;
@@ -53,6 +56,18 @@ export default function Watchlist() {
     [items, nextId]
   );
 
+  const availableServices = useMemo(() => {
+    const seen = {};
+    Object.values(providerMap).forEach((providers) => {
+      providers.forEach((p) => {
+        if (!seen[p.provider_id]) {
+          seen[p.provider_id] = { id: p.provider_id, name: p.provider_name, logo: p.logo_path };
+        }
+      });
+    });
+    return Object.values(seen).sort((a, b) => a.name.localeCompare(b.name));
+  }, [providerMap]);
+
   const displayedItems = useMemo(() => {
     let filtered = items.filter((i) => i.id !== nextId || i.is_watched);
     if (filter === 'Watched') filtered = filtered.filter((i) => i.is_watched);
@@ -60,10 +75,16 @@ export default function Watchlist() {
     if (runtimeFilter === 'short') filtered = filtered.filter((i) => i.runtime && i.runtime < 90);
     if (runtimeFilter === 'medium') filtered = filtered.filter((i) => i.runtime && i.runtime >= 90 && i.runtime <= 120);
     if (runtimeFilter === 'long') filtered = filtered.filter((i) => i.runtime && i.runtime > 120);
+    if (selectedService) {
+      filtered = filtered.filter((i) => {
+        const providers = providerMap[i.tmdb_movie_id] || [];
+        return providers.some((p) => p.provider_id === selectedService);
+      });
+    }
     if (sort === 'title') filtered.sort((a, b) => a.title.localeCompare(b.title));
     if (sort === 'rating') filtered.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
     return filtered;
-  }, [items, filter, sort, runtimeFilter, nextId]);
+  }, [items, filter, sort, runtimeFilter, nextId, selectedService, providerMap]);
 
   const showTransientError = (msg) => {
     setError(msg);
@@ -97,7 +118,15 @@ export default function Watchlist() {
     setError('');
     setLoading(true);
     getWatchlist(token)
-      .then((data) => setItems(data || []))
+      .then((data) => {
+        const list = data || [];
+        setItems(list);
+        // Fetch streaming providers in the background for unwatched items
+        const ids = list.filter((i) => !i.is_watched).map((i) => i.tmdb_movie_id).slice(0, 50);
+        if (ids.length > 0) {
+          getProvidersBatch(ids).then(setProviderMap).catch(() => {});
+        }
+      })
       .catch((err) => setError(err.message || 'Network error'))
       .finally(() => setLoading(false));
   }, [token]);
@@ -301,6 +330,42 @@ export default function Watchlist() {
               </button>
             ))}
           </div>
+
+          {availableServices.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-widest text-slate-500">Streaming</span>
+              {selectedService && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedService(null)}
+                  className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-white/20"
+                >
+                  ✕ Clear
+                </button>
+              )}
+              {availableServices.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSelectedService(selectedService === s.id ? null : s.id)}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+                    selectedService === s.id
+                      ? 'border-blue-500/50 bg-blue-600/20 text-blue-200'
+                      : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
+                  }`}
+                >
+                  {s.logo && (
+                    <img
+                      src={`${TMDB_IMAGE_BASE}/w45${s.logo}`}
+                      alt={s.name}
+                      className="h-4 w-4 rounded object-cover"
+                    />
+                  )}
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
