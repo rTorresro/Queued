@@ -77,7 +77,7 @@ export default function Dashboard() {
         <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-blue-500/15 blur-3xl" />
         <div className="relative">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">Your dashboard</p>
-          <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-100">What's on your queue?</h1>
+          <h1 className="mt-3 text-3xl font-bold text-slate-100">What's on your queue?</h1>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/search" className="rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-500">
               Search movies
@@ -119,8 +119,8 @@ export default function Dashboard() {
               { label: 'Avg rating', value: stats.avgRating ? `${stats.avgRating}/10` : '—', color: 'text-red-400' }
             ].map((stat) => (
               <div key={stat.label} className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">{stat.label}</p>
-                <p className={`mt-3 text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{stat.label}</p>
+                <p className={`mt-3 text-3xl font-semibold ${stat.color}`}>{stat.value}</p>
               </div>
             ))}
           </div>
@@ -134,7 +134,7 @@ export default function Dashboard() {
               <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-800">
                 <div className="h-full rounded-full bg-emerald-500/80 transition-all duration-700" style={{ width: `${stats.progress}%` }} />
               </div>
-              <p className="mt-2 text-[10px] text-slate-600">{stats.watched} of {stats.total} watched</p>
+              <p className="mt-2 text-xs text-slate-600">{stats.watched} of {stats.total} watched</p>
             </div>
           )}
 
@@ -190,7 +190,7 @@ export default function Dashboard() {
                   type="button"
                   onClick={handleGetAIRecs}
                   disabled={aiLoading}
-                  className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-5 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-600/20 disabled:opacity-50"
+                  className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-5 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-600/20 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {aiLoading ? 'Generating...' : aiRecs ? 'Refresh' : 'Generate'}
                 </button>
@@ -229,8 +229,8 @@ export default function Dashboard() {
                         ) : (
                           <p className="text-sm font-semibold text-slate-100 line-clamp-1">{rec.title}</p>
                         )}
-                        {rec.year && <p className="text-[10px] text-slate-500">{rec.year}</p>}
-                        <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400 italic line-clamp-3">{rec.reason}</p>
+                        {rec.year && <p className="text-xs text-slate-500">{rec.year}</p>}
+                        <p className="mt-1.5 text-xs leading-relaxed text-slate-400 italic line-clamp-3">{rec.reason}</p>
                       </div>
                     </div>
                   ))}
@@ -248,7 +248,7 @@ export default function Dashboard() {
           <div className="mt-10 grid gap-6 lg:grid-cols-2 reveal">
             {recentlyAdded.length > 0 && (
               <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Recently added</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Recently added</h2>
                 <div className="mt-4 space-y-3">
                   {recentlyAdded.map((item) => (
                     <Link key={item.id} to={`/movies/${item.tmdb_movie_id}`} className="flex items-center gap-3 rounded-xl border border-white/5 bg-slate-950/50 p-2 transition hover:border-red-500/20">
@@ -259,7 +259,7 @@ export default function Dashboard() {
                       )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-100">{item.title}</p>
-                        <p className="text-[10px] text-slate-500">{item.is_watched ? 'Watched' : 'Not watched'}</p>
+                        <p className="text-xs text-slate-500">{item.is_watched ? 'Watched' : 'Not watched'}</p>
                       </div>
                     </Link>
                   ))}
@@ -268,11 +268,11 @@ export default function Dashboard() {
             )}
             {topRated.length > 0 && (
               <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Your top rated</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Your top rated</h2>
                 <div className="mt-4 space-y-3">
                   {topRated.map((item, index) => (
                     <Link key={item.id} to={`/movies/${item.tmdb_movie_id}`} className="flex items-center gap-3 rounded-xl border border-white/5 bg-slate-950/50 p-2 transition hover:border-red-500/20">
-                      <span className="w-5 shrink-0 text-center text-xs font-bold text-slate-500">#{index + 1}</span>
+                      <span className="w-5 shrink-0 text-center text-xs font-semibold text-slate-500">#{index + 1}</span>
                       {item.poster_path ? (
                         <img src={`${TMDB_IMAGE_BASE}/w92${item.poster_path}`} alt={item.title} className="h-12 w-8 rounded-lg object-cover" />
                       ) : (
@@ -281,7 +281,7 @@ export default function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-100">{item.title}</p>
                       </div>
-                      <span className="shrink-0 text-sm font-bold text-yellow-400">{item.rating}/10</span>
+                      <span className="shrink-0 text-sm font-semibold text-yellow-400">{item.rating}/10</span>
                     </Link>
                   ))}
                 </div>

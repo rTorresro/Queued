@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
-import API_BASE_URL from '../config';
+import { loginUser, registerUser } from '../services/auth';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -54,54 +54,23 @@ export default function Login() {
 
     try {
       if (mode === 'login') {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data?.error || 'Invalid email or password.');
-          return;
-        }
-
+        const data = await loginUser(email, password);
         login(data.token);
         navigate('/dashboard');
       } else {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, username, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data?.error || 'Registration failed. That email or username may already be taken.');
-          return;
-        }
-
+        await registerUser(email, username, password);
         // Auto-login after register
-        const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-        const loginData = await loginRes.json();
-
-        if (loginRes.ok) {
+        try {
+          const loginData = await loginUser(email, password);
           login(loginData.token);
           navigate('/dashboard');
-        } else {
+        } catch {
           setSuccess('Account created! You can now log in.');
           switchMode('login');
         }
       }
     } catch (err) {
-      console.error(err);
-      setError('Could not reach the server. Make sure the backend is running.');
+      setError(err.message || 'Could not reach the server. Make sure the backend is running.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +79,7 @@ export default function Login() {
   return (
     <section className="flex min-h-screen flex-col items-center justify-center px-4 reveal">
       <div className="mb-8 text-center">
-        <h1 className="text-5xl font-extrabold text-red-400">Queued</h1>
+        <h1 className="text-5xl font-bold text-red-400">Queued</h1>
         <p className="mt-2 text-sm text-slate-400">Your personal movie tracker</p>
       </div>
 
@@ -144,7 +113,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-4 focus:ring-red-500/10"
+                className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
               />
             </div>
 
@@ -158,7 +127,7 @@ export default function Login() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="yourname"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-4 focus:ring-red-500/10"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 />
               </div>
             )}
@@ -172,7 +141,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-4 focus:ring-red-500/10"
+                className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
               />
             </div>
 
@@ -186,7 +155,7 @@ export default function Login() {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="••••••••"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-4 focus:ring-red-500/10"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-slate-800/80 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 />
               </div>
             )}
@@ -197,7 +166,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 w-full rounded-xl bg-red-600 py-3 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading
                 ? mode === 'login' ? 'Logging in…' : 'Creating account…'

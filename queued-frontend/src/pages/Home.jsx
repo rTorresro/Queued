@@ -38,7 +38,7 @@ export default function Home() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">
             Your life in film
           </p>
-          <h1 className="mt-4 text-4xl font-extrabold text-slate-100 sm:text-5xl">
+          <h1 className="mt-4 text-5xl font-bold text-slate-100">
             Welcome to <span className="text-red-400">Queued</span>
           </h1>
           <p className="mt-4 max-w-2xl text-sm text-slate-300">
@@ -75,14 +75,14 @@ export default function Home() {
             key={card.title}
             className="rounded-2xl border border-white/10 bg-slate-950/70 p-6 shadow-xl"
           >
-            <h3 className="text-base font-semibold text-slate-100">{card.title}</h3>
+            <h3 className="text-lg font-semibold text-slate-100">{card.title}</h3>
             <p className="mt-2 text-sm text-slate-400">{card.body}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-12 reveal">
-        <h2 className="text-xl font-semibold text-slate-100">Trending this week</h2>
+        <h2 className="text-lg font-semibold text-slate-100">Trending this week</h2>
         <p className="mt-1 text-sm text-slate-400">
           What the world is watching right now.
         </p>
@@ -120,7 +120,7 @@ export default function Home() {
                 <div className="p-3">
                   <p className="text-xs font-semibold leading-snug text-slate-100">{movie.title}</p>
                   {movie.vote_average > 0 && (
-                    <p className="mt-1 text-[10px] text-yellow-400">
+                    <p className="mt-1 text-xs text-yellow-400">
                       ★ {movie.vote_average.toFixed(1)}
                     </p>
                   )}

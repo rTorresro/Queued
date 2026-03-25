@@ -70,7 +70,7 @@ export default function Profile() {
                 <div key={stat.label} className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
                   <p className="text-xs uppercase tracking-[0.25em] text-slate-500">{stat.label}</p>
                   <p className={`mt-3 text-3xl font-semibold ${stat.color}`}>{stat.value}</p>
-                  {stat.sub && <p className="mt-1 text-[10px] text-slate-600">{stat.sub}</p>}
+                  {stat.sub && <p className="mt-1 text-xs text-slate-600">{stat.sub}</p>}
                 </div>
               ))}
             </div>
@@ -81,13 +81,13 @@ export default function Profile() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">AI insight</p>
-                    <h2 className="mt-2 text-base font-semibold text-slate-100">Your film personality</h2>
+                    <h2 className="mt-2 text-lg font-semibold text-slate-100">Your film personality</h2>
                   </div>
                   <button
                     type="button"
                     onClick={handleGeneratePersonality}
                     disabled={personalityLoading}
-                    className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-4 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-600/20 disabled:opacity-50"
+                    className="shrink-0 rounded-full border border-red-500/30 bg-red-600/10 px-4 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-600/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {personalityLoading ? 'Analyzing…' : personality ? 'Refresh' : 'Generate'}
                   </button>
@@ -104,7 +104,7 @@ export default function Profile() {
                 )}
                 {!personalityLoading && personality && (
                   <div className="mt-4">
-                    <p className="text-lg font-bold text-red-300">{personality.type}</p>
+                    <p className="text-lg font-semibold text-red-300">{personality.type}</p>
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">{personality.description}</p>
                   </div>
                 )}
@@ -120,7 +120,7 @@ export default function Profile() {
             {stats.yearMovies > 0 && (
               <div className="mt-8 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/30 to-slate-900/70 p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">{stats.currentYear} so far</p>
-                <h2 className="mt-2 text-base font-semibold text-slate-100">Your year in film</h2>
+                <h2 className="mt-2 text-lg font-semibold text-slate-100">Your year in film</h2>
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[
                     { label: 'Films watched', value: stats.yearMovies, color: 'text-slate-100' },
@@ -129,10 +129,10 @@ export default function Profile() {
                     { label: 'Best rated', value: stats.yearBest ? `${stats.yearBest.rating}/10` : '—', color: 'text-yellow-400' }
                   ].map((s) => (
                     <div key={s.label} className="rounded-xl border border-white/5 bg-slate-900/50 p-3">
-                      <p className="text-[10px] uppercase tracking-widest text-slate-500">{s.label}</p>
-                      <p className={`mt-2 text-xl font-bold ${s.color}`}>{s.value}</p>
+                      <p className="text-xs uppercase tracking-widest text-slate-500">{s.label}</p>
+                      <p className={`mt-2 text-lg font-semibold ${s.color}`}>{s.value}</p>
                       {s.label === 'Best rated' && stats.yearBest && (
-                        <p className="mt-1 text-[10px] leading-tight text-slate-500 truncate">{stats.yearBest.title}</p>
+                        <p className="mt-1 text-xs leading-tight text-slate-500 truncate">{stats.yearBest.title}</p>
                       )}
                     </div>
                   ))}
@@ -143,7 +143,7 @@ export default function Profile() {
             {/* Genre taste */}
             {stats.topGenres.length > 0 && (
               <div className="mt-8 rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Your top genres</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Your top genres</h2>
                 <p className="mt-1 text-xs text-slate-500">Based on movies you've watched</p>
                 <div className="mt-5 space-y-3">
                   {stats.topGenres.map(([genre, count]) => {
@@ -165,18 +165,18 @@ export default function Profile() {
             {/* Decades */}
             {stats.decades.length > 0 && (
               <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Decades you love</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Decades you love</h2>
                 <p className="mt-1 text-xs text-slate-500">Era breakdown of your watched movies</p>
                 <div className="mt-5 flex items-end gap-3">
                   {stats.decades.map(([decade, count]) => {
                     const heightPct = Math.max(8, Math.round((count / stats.maxDecadeCount) * 100));
                     return (
                       <div key={decade} className="flex flex-1 flex-col items-center gap-2">
-                        <span className="text-[10px] font-semibold text-slate-400">{count}</span>
+                        <span className="text-xs font-semibold text-slate-400">{count}</span>
                         <div className="relative w-full overflow-hidden rounded-t-lg bg-slate-800" style={{ height: 64 }}>
                           <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-red-600/80 to-red-400/50 transition-all duration-700" style={{ height: `${heightPct}%` }} />
                         </div>
-                        <span className="text-[10px] text-slate-500">{decade}s</span>
+                        <span className="text-xs text-slate-500">{decade}s</span>
                       </div>
                     );
                   })}
@@ -187,7 +187,7 @@ export default function Profile() {
             {/* Director stats */}
             {stats.topDirectors.length > 0 && (
               <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Directors you love</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Directors you love</h2>
                 <p className="mt-1 text-xs text-slate-500">Based on movies you've watched</p>
                 <div className="mt-5 space-y-3">
                   {stats.topDirectors.map(([name, count]) => (
@@ -206,7 +206,7 @@ export default function Profile() {
                       <span className="w-8 shrink-0 text-right text-xs text-slate-500">{count} {count === 1 ? 'film' : 'films'}</span>
                     </div>
                   ))}
-                  <p className="mt-3 text-[10px] text-slate-600">Click a director to explore their filmography →</p>
+                  <p className="mt-3 text-xs text-slate-600">Click a director to explore their filmography →</p>
                 </div>
               </div>
             )}
@@ -214,17 +214,17 @@ export default function Profile() {
             {/* Ratings distribution */}
             {stats.rated > 0 && (
               <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Ratings distribution</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Ratings distribution</h2>
                 <div className="mt-5 flex items-end gap-3">
                   {stats.distribution.map((bucket) => {
                     const heightPct = bucket.count ? Math.max(8, Math.round((bucket.count / stats.maxCount) * 100)) : 4;
                     return (
                       <div key={bucket.score} className="flex flex-1 flex-col items-center gap-2">
-                        <span className="text-[10px] font-semibold text-slate-400">{bucket.count || ''}</span>
+                        <span className="text-xs font-semibold text-slate-400">{bucket.count || ''}</span>
                         <div className="relative w-full overflow-hidden rounded-t-lg bg-slate-800" style={{ height: 64 }}>
                           <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-yellow-500/80 to-yellow-400/50 transition-all duration-700" style={{ height: `${heightPct}%` }} />
                         </div>
-                        <span className="text-[10px] text-slate-400">{bucket.label}</span>
+                        <span className="text-xs text-slate-400">{bucket.label}</span>
                       </div>
                     );
                   })}
@@ -235,7 +235,7 @@ export default function Profile() {
             {/* Mood analytics */}
             {stats.moodStats.length > 0 && (
               <div className="mt-6 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-950/20 to-slate-900/70 p-6">
-                <h2 className="text-base font-semibold text-slate-100">Your watching moods</h2>
+                <h2 className="text-lg font-semibold text-slate-100">Your watching moods</h2>
                 <p className="mt-1 text-xs text-slate-500">How you felt while watching each film</p>
                 {stats.moodInsight && (
                   <p className="mt-3 text-sm text-purple-300/80 italic">"{stats.moodInsight}"</p>
@@ -264,12 +264,12 @@ export default function Profile() {
 
             {/* Top rated */}
             <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-              <h2 className="text-base font-semibold text-slate-100">Your top rated</h2>
+              <h2 className="text-lg font-semibold text-slate-100">Your top rated</h2>
               <div className="mt-4 space-y-3">
                 {stats.topRated.length === 0 && <p className="text-sm text-slate-400">No ratings yet.</p>}
                 {stats.topRated.map((item, index) => (
                   <div key={item.id} className="flex items-center gap-4">
-                    <span className="w-5 shrink-0 text-center text-xs font-bold text-slate-600">#{index + 1}</span>
+                    <span className="w-5 shrink-0 text-center text-xs font-semibold text-slate-600">#{index + 1}</span>
                     {item.poster_path ? (
                       <img src={`${TMDB_IMAGE_BASE}/w92${item.poster_path}`} alt={item.title} className="h-10 w-7 rounded object-cover" />
                     ) : (
@@ -302,7 +302,7 @@ export default function Profile() {
                     style={{ width: `${Math.round((stats.watched / stats.total) * 100)}%` }}
                   />
                 </div>
-                <p className="mt-2 text-[10px] text-slate-600">{stats.watched} of {stats.total} watched</p>
+                <p className="mt-2 text-xs text-slate-600">{stats.watched} of {stats.total} watched</p>
               </div>
             )}
           </>

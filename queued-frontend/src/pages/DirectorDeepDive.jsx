@@ -81,7 +81,7 @@ export default function DirectorDeepDive() {
               className="h-20 w-20 shrink-0 rounded-2xl border border-white/10 object-cover"
             />
           ) : (
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-slate-800 text-2xl font-bold text-slate-500">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-slate-800 text-lg font-semibold text-slate-500">
               {directorName[0]}
             </div>
           )}
@@ -89,7 +89,7 @@ export default function DirectorDeepDive() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">
               Filmmaker
             </p>
-            <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold text-slate-100">
+            <h1 className="mt-1 text-3xl font-bold text-slate-100">
               {directorName}
             </h1>
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-400">
@@ -115,7 +115,7 @@ export default function DirectorDeepDive() {
                 style={{ width: `${Math.round((watchedCount / films.length) * 100)}%` }}
               />
             </div>
-            <p className="mt-1.5 text-[10px] text-slate-600">
+            <p className="mt-1.5 text-xs text-slate-600">
               {Math.round((watchedCount / films.length) * 100)}% of their filmography watched
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function DirectorDeepDive() {
               Still to watch
             </h2>
             <div className="h-px flex-1 bg-white/5" />
-            <span className="shrink-0 text-[10px] text-slate-600">{unwatched.length} films</span>
+            <span className="shrink-0 text-xs text-slate-600">{unwatched.length} films</span>
           </div>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             {unwatched.map((film) => (
@@ -153,7 +153,7 @@ export default function DirectorDeepDive() {
               Already watched
             </h2>
             <div className="h-px flex-1 bg-white/5" />
-            <span className="shrink-0 text-[10px] text-slate-600">{watched.length} films</span>
+            <span className="shrink-0 text-xs text-slate-600">{watched.length} films</span>
           </div>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             {watched.map((film) => (
@@ -213,31 +213,31 @@ function FilmCard({ film, inWatchlist, watched }) {
         />
         {watched && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="rounded-full border border-emerald-500/50 bg-emerald-600/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+            <span className="rounded-full border border-emerald-500/50 bg-emerald-600/30 px-2 py-0.5 text-xs font-semibold text-emerald-300">
               ✓ Watched
             </span>
           </div>
         )}
         {!watched && inWatchlist && (
           <div className="absolute bottom-1.5 left-1.5">
-            <span className="rounded-full border border-red-500/40 bg-red-600/20 px-1.5 py-0.5 text-[9px] font-semibold text-red-300">
+            <span className="rounded-full border border-red-500/40 bg-red-600/20 px-1.5 py-0.5 text-xs font-semibold text-red-300">
               In queue
             </span>
           </div>
         )}
         {film.vote_average > 0 && (
           <div className="absolute right-1.5 top-1.5">
-            <span className="rounded-full border border-yellow-500/30 bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-semibold text-yellow-400">
+            <span className="rounded-full border border-yellow-500/30 bg-slate-950/80 px-1.5 py-0.5 text-xs font-semibold text-yellow-400">
               ★ {film.vote_average.toFixed(1)}
             </span>
           </div>
         )}
       </div>
       <div>
-        <p className="text-[11px] font-semibold leading-tight text-slate-300 group-hover:text-red-300 transition line-clamp-2">
+        <p className="text-xs font-semibold leading-tight text-slate-300 group-hover:text-red-300 transition line-clamp-2">
           {film.title}
         </p>
-        {year && <p className="mt-0.5 text-[10px] text-slate-600">{year}</p>}
+        {year && <p className="mt-0.5 text-xs text-slate-600">{year}</p>}
       </div>
     </Link>
   );

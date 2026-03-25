@@ -34,16 +34,16 @@ export default function AiPickerModal({ onClose, onPick }) {
         className="relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-red-300/80">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">
           AI pick
         </p>
-        <h2 className="mt-2 text-xl font-bold text-slate-100">What are you in the mood for?</h2>
+        <h2 className="mt-2 text-lg font-semibold text-slate-100">What are you in the mood for?</h2>
         <p className="mt-1 text-xs text-slate-500">
           Claude will pick the perfect movie from your unwatched list.
         </p>
 
         <div className="mt-5">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
             Your mood (optional)
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -65,7 +65,7 @@ export default function AiPickerModal({ onClose, onPick }) {
         </div>
 
         <div className="mt-4">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
             Time available
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -93,7 +93,7 @@ export default function AiPickerModal({ onClose, onPick }) {
             type="button"
             onClick={handlePick}
             disabled={loading}
-            className="flex-1 rounded-full bg-red-600 py-2.5 text-xs font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
+            className="flex-1 rounded-full bg-red-600 py-2 text-xs font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Picking…' : 'Pick for me'}
           </button>

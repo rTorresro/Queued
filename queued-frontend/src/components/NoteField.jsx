@@ -27,10 +27,10 @@ export default function NoteField({ item, onSaveNote }) {
         onBlur={(e) => save(e.target.value)}
         placeholder="Add a quick note…"
         rows={2}
-        className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:border-red-500/40 focus:outline-none"
+        className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs text-slate-300 placeholder:text-slate-600 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
       />
-      {saving && <p className="mt-1 text-[10px] text-slate-500">Saving…</p>}
-      {saved && <p className="mt-1 text-[10px] text-emerald-400">✓ Saved</p>}
+      {saving && <p className="mt-1 text-xs text-slate-500">Saving…</p>}
+      {saved && <p className="mt-1 text-xs text-emerald-400">✓ Saved</p>}
     </div>
   );
 }

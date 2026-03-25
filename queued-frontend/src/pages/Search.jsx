@@ -119,7 +119,7 @@ export default function Search() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search movies..."
-              className="h-11 flex-1 rounded-full border border-white/10 bg-slate-900/70 px-4 text-sm text-slate-100 placeholder:text-slate-500 focus:border-red-500/60 focus:outline-none focus:ring-4 focus:ring-red-500/10"
+              className="h-11 flex-1 rounded-xl border border-white/10 bg-slate-900/70 px-4 text-sm text-slate-100 placeholder:text-slate-500 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
             <button type="submit" className="h-11 rounded-full bg-red-600 px-6 text-sm font-semibold text-white transition hover:bg-red-500">
               Search
@@ -140,15 +140,15 @@ export default function Search() {
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Results</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Results</p>
               <p className="mt-2 text-lg font-semibold text-slate-100">{results.length}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Top rated</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Top rated</p>
               <p className="mt-2 text-sm font-semibold text-slate-100">{topRated ? topRated.title : '—'}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Score</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Score</p>
               <p className="mt-2 text-lg font-semibold text-slate-100">
                 {topRated?.vote_average ? topRated.vote_average.toFixed(1) : '—'}
               </p>
@@ -196,7 +196,7 @@ export default function Search() {
                     type="button"
                     onClick={() => handleAddToWatchlist(movie)}
                     disabled={addingId === movie.id}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold text-white transition ${justAdded ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'}`}
+                    className={`rounded-full px-5 py-2 text-xs font-semibold text-white transition ${justAdded ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50'}`}
                   >
                     {addingId === movie.id ? 'Adding…' : justAdded ? '✓ Added' : 'Add to Watchlist'}
                   </button>

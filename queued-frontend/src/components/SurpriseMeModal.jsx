@@ -20,10 +20,10 @@ export default function SurpriseMeModal({ item, reason, onClose, onMarkWatched }
           />
         )}
         <div className="p-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-red-300/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">
             {reason ? 'Picked for you' : "Tonight's pick"}
           </p>
-          <h2 className="mt-2 text-xl font-bold text-slate-100">{item.title}</h2>
+          <h2 className="mt-2 text-lg font-semibold text-slate-100">{item.title}</h2>
           {item.release_year && <p className="mt-1 text-xs text-slate-500">{item.release_year}</p>}
           {item.runtime && <p className="text-xs text-slate-500">{item.runtime} min</p>}
           {item.genres && (

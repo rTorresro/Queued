@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const MovieCard = ({ title, posterPath, description, actions, children, tmdbId, badge }) => {
   const cardRef = useRef(null);
   const [tiltStyle, setTiltStyle] = useState({});
-  const [glowColor, setGlowColor] = useState('rgba(229, 9, 20, 0.35)');
+  const [glowColor, setGlowColor] = useState('rgba(var(--primary-rgb), 0.35)');
   const posterContent = posterPath ? (
     <img
       src={`https://image.tmdb.org/t/p/w500${posterPath}`}
@@ -94,7 +94,7 @@ const MovieCard = ({ title, posterPath, description, actions, children, tmdbId, 
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/20 to-transparent" />
         {badge && (
-          <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-200">
+          <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">
             {badge}
           </div>
         )}

@@ -44,7 +44,7 @@ export default function Diary() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">
             Your history
           </p>
-          <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-100">Watch Diary</h1>
+          <h1 className="mt-3 text-3xl font-bold text-slate-100">Watch Diary</h1>
           <p className="mt-2 text-sm text-slate-400">
             Every film you've watched, in order.
           </p>
@@ -98,7 +98,7 @@ export default function Diary() {
               {month}
             </h2>
             <div className="h-px flex-1 bg-white/5" />
-            <span className="shrink-0 text-[10px] text-slate-600">
+            <span className="shrink-0 text-xs text-slate-600">
               {monthItems.length} {monthItems.length === 1 ? 'film' : 'films'}
             </span>
           </div>
@@ -127,27 +127,27 @@ export default function Diary() {
                     <p className="truncate text-sm font-semibold text-slate-100 group-hover:text-red-300 transition">
                       {item.title}
                     </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       {item.release_year && <span>{item.release_year}</span>}
                       {item.runtime && <span>{item.runtime} min</span>}
                       {item.director && <span>Dir. {item.director}</span>}
                     </div>
                     {item.notes && (
-                      <p className="mt-1 text-[11px] italic text-slate-500 line-clamp-1">
+                      <p className="mt-1 text-xs italic text-slate-500 line-clamp-1">
                         "{item.notes}"
                       </p>
                     )}
                   </div>
 
                   <div className="shrink-0 flex flex-col items-end gap-1.5">
-                    <span className="text-[10px] text-slate-600">{day}</span>
+                    <span className="text-xs text-slate-600">{day}</span>
                     {item.rating !== null && (
-                      <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-semibold text-yellow-400">
+                      <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-xs font-semibold text-yellow-400">
                         {item.rating}/10
                       </span>
                     )}
                     {item.mood && (
-                      <span className="rounded-full border border-purple-500/20 bg-purple-600/10 px-2 py-0.5 text-[10px] text-purple-400">
+                      <span className="rounded-full border border-purple-500/20 bg-purple-600/10 px-2 py-0.5 text-xs text-purple-400">
                         {item.mood}
                       </span>
                     )}

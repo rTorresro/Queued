@@ -241,14 +241,14 @@ export default function Watchlist() {
                 <button
                   type="button"
                   onClick={() => setShowAiPicker(true)}
-                  className="rounded-full border border-purple-500/30 bg-purple-600/10 px-4 py-2 text-xs font-semibold text-purple-300 transition hover:bg-purple-600/20"
+                  className="rounded-full border border-purple-500/30 bg-purple-600/10 px-5 py-2 text-xs font-semibold text-purple-300 transition hover:bg-purple-600/20"
                 >
                   Pick for Me
                 </button>
                 <button
                   type="button"
                   onClick={handleSurpriseMe}
-                  className="rounded-full border border-red-500/30 bg-red-600/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-600/20"
+                  className="rounded-full border border-red-500/30 bg-red-600/10 px-5 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-600/20"
                 >
                   Surprise Me
                 </button>
@@ -283,10 +283,10 @@ export default function Watchlist() {
               <p className="mt-0.5 text-xs text-slate-500">Pinned as your next watch</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <button type="button" onClick={() => handleToggleWatched(nextItem)} className="rounded-full bg-emerald-600/20 border border-emerald-500/30 px-4 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-600/30">
+              <button type="button" onClick={() => handleToggleWatched(nextItem)} className="rounded-full bg-emerald-600/20 border border-emerald-500/30 px-3 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-600/30">
                 Mark watched
               </button>
-              <button type="button" onClick={() => handlePinNext(nextItem.id)} className="rounded-full border border-white/10 bg-slate-800 px-4 py-1.5 text-xs font-semibold text-slate-400 transition hover:text-slate-200">
+              <button type="button" onClick={() => handlePinNext(nextItem.id)} className="rounded-full border border-white/10 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-white/20 hover:text-slate-200">
                 Unpin
               </button>
             </div>
@@ -301,7 +301,7 @@ export default function Watchlist() {
             <div className="flex items-center gap-2">
               {FILTER_OPTIONS.map((f) => (
                 <button key={f} type="button" onClick={() => setFilter(f)}
-                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${filter === f ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'}`}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${filter === f ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20 hover:text-slate-200'}`}
                 >
                   {f}
                   {f === 'Watched' && ` (${watchedCount})`}
@@ -313,7 +313,7 @@ export default function Watchlist() {
               <span className="text-xs uppercase tracking-widest text-slate-500">Sort</span>
               {SORT_OPTIONS.map((s) => (
                 <button key={s.value} type="button" onClick={() => setSort(s.value)}
-                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${sort === s.value ? 'border-red-500/50 bg-red-600/10 text-red-200' : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'}`}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${sort === s.value ? 'border-red-500/50 bg-red-600/10 text-red-200' : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20 hover:text-slate-200'}`}
                 >
                   {s.label}
                 </button>
@@ -324,7 +324,7 @@ export default function Watchlist() {
             <span className="text-xs uppercase tracking-widest text-slate-500">Length</span>
             {RUNTIME_OPTIONS.map((r) => (
               <button key={r.value} type="button" onClick={() => setRuntimeFilter(r.value)}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${runtimeFilter === r.value ? 'border-purple-500/50 bg-purple-600/10 text-purple-200' : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'}`}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${runtimeFilter === r.value ? 'border-purple-500/50 bg-purple-600/10 text-purple-200' : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20 hover:text-slate-200'}`}
               >
                 {r.label}
               </button>
@@ -338,7 +338,7 @@ export default function Watchlist() {
                 <button
                   type="button"
                   onClick={() => setSelectedService(null)}
-                  className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-white/20"
+                  className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-white/20 hover:text-slate-200"
                 >
                   ✕ Clear
                 </button>
@@ -348,10 +348,10 @@ export default function Watchlist() {
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedService(selectedService === s.id ? null : s.id)}
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition ${
                     selectedService === s.id
                       ? 'border-blue-500/50 bg-blue-600/20 text-blue-200'
-                      : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20'
+                      : 'border-white/10 bg-slate-900/70 text-slate-300 hover:border-white/20 hover:text-slate-200'
                   }`}
                 >
                   {s.logo && (
@@ -387,7 +387,7 @@ export default function Watchlist() {
         {!loading && !error && items.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-6 text-sm text-slate-400">
             <p>No items yet. Start building your queue.</p>
-            <Link to="/search" className="mt-4 inline-flex rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-500">
+            <Link to="/search" className="mt-4 inline-flex rounded-full bg-red-600 px-5 py-2 text-xs font-semibold text-white transition hover:bg-red-500">
               Search movies
             </Link>
           </div>

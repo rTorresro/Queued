@@ -30,7 +30,7 @@ export default function MonthlyGoal({ items }) {
     <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/70 p-5 reveal">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">{monthName} goal</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{monthName} goal</p>
           {goal === 0 ? (
             <p className="mt-1 text-sm text-slate-400">No goal set yet.</p>
           ) : (
@@ -49,7 +49,7 @@ export default function MonthlyGoal({ items }) {
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && save()}
               autoFocus
-              className="w-16 rounded-full border border-white/10 bg-slate-800 px-3 py-1 text-center text-sm text-slate-100 focus:border-red-500/50 focus:outline-none"
+              className="w-16 rounded-xl border border-white/10 bg-slate-800 px-3 py-1 text-center text-sm text-slate-100 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
             <button
               type="button"
@@ -63,7 +63,7 @@ export default function MonthlyGoal({ items }) {
           <button
             type="button"
             onClick={() => { setDraft(goal > 0 ? String(goal) : ''); setEditing(true); }}
-            className="rounded-full border border-white/10 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:text-slate-200"
+            className="rounded-full border border-white/10 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-white/20 hover:text-slate-200"
           >
             {goal > 0 ? 'Edit goal' : 'Set goal'}
           </button>
@@ -77,7 +77,7 @@ export default function MonthlyGoal({ items }) {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-2 text-[10px] text-slate-600">
+          <p className="mt-2 text-xs text-slate-600">
             {pct >= 100 ? 'Goal reached.' : `${goal - watchedThisMonth} more to go`}
           </p>
         </>

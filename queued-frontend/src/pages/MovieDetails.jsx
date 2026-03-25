@@ -238,7 +238,7 @@ export default function MovieDetails() {
                   type="button"
                   onClick={handleAddToWatchlist}
                   disabled={adding || alreadyAdded}
-                  className={`rounded-full px-5 py-2 text-xs font-semibold text-white transition ${success === 'Added to watchlist!' ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:opacity-60'}`}
+                  className={`rounded-full px-5 py-2 text-xs font-semibold text-white transition ${success === 'Added to watchlist!' ? 'bg-emerald-600' : 'bg-red-600 hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50'}`}
                 >
                   {adding ? 'Adding…' : success === 'Added to watchlist!' ? '✓ Added' : 'Add to Watchlist'}
                 </button>
@@ -246,12 +246,12 @@ export default function MovieDetails() {
                   type="button"
                   onClick={handleAlreadySeen}
                   disabled={addingAsSeen || alreadyAdded}
-                  className={`rounded-full border px-5 py-2 text-xs font-semibold transition ${success === 'Logged as watched!' ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-800 text-slate-300 hover:border-white/20 hover:text-white disabled:opacity-60'}`}
+                  className={`rounded-full border px-5 py-2 text-xs font-semibold transition ${success === 'Logged as watched!' ? 'border-emerald-500/50 bg-emerald-600/20 text-emerald-200' : 'border-white/10 bg-slate-800 text-slate-300 hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50'}`}
                 >
                   {addingAsSeen ? 'Logging…' : success === 'Logged as watched!' ? '✓ Logged' : 'Already seen it'}
                 </button>
                 {undoVisible && (
-                  <button type="button" onClick={handleUndo} className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20">
+                  <button type="button" onClick={handleUndo} className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-5 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20">
                     Undo
                   </button>
                 )}
@@ -263,13 +263,13 @@ export default function MovieDetails() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold text-slate-400">What would you rate this?</p>
-                    <p className="text-[10px] text-slate-600">AI prediction based on your taste</p>
+                    <p className="text-xs text-slate-600">AI prediction based on your taste</p>
                   </div>
                   <button
                     type="button"
                     onClick={handlePredictRating}
                     disabled={predicting}
-                    className="shrink-0 rounded-full border border-purple-500/30 bg-purple-600/10 px-4 py-1.5 text-xs font-semibold text-purple-300 transition hover:bg-purple-600/20 disabled:opacity-50"
+                    className="shrink-0 rounded-full border border-purple-500/30 bg-purple-600/10 px-4 py-1.5 text-xs font-semibold text-purple-300 transition hover:bg-purple-600/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {predicting ? 'Predicting…' : prediction ? 'Retry' : 'Predict'}
                   </button>
@@ -280,11 +280,11 @@ export default function MovieDetails() {
                 {prediction && (
                   <div className="mt-3 rounded-2xl border border-purple-500/20 bg-purple-950/20 p-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl font-extrabold text-purple-300">
+                      <span className="text-3xl font-bold text-purple-300">
                         {prediction.predicted}
-                        <span className="text-base font-normal text-slate-500">/10</span>
+                        <span className="text-lg text-slate-500">/10</span>
                       </span>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
                         prediction.confidence === 'high'
                           ? 'border-emerald-500/30 bg-emerald-600/10 text-emerald-400'
                           : prediction.confidence === 'low'
@@ -319,7 +319,7 @@ export default function MovieDetails() {
                   {streamingProviders.map((p) => (
                     <div key={p.provider_id} className="flex flex-col items-center gap-1.5">
                       <img src={`${TMDB_IMAGE_BASE}/w92${p.logo_path}`} alt={p.provider_name} className="h-12 w-12 rounded-xl border border-white/10 object-cover" />
-                      <span className="text-[10px] text-slate-400">{p.provider_name}</span>
+                      <span className="text-xs text-slate-400">{p.provider_name}</span>
                     </div>
                   ))}
                 </div>
@@ -332,7 +332,7 @@ export default function MovieDetails() {
                   {rentProviders.map((p) => (
                     <div key={p.provider_id} className="flex flex-col items-center gap-1.5">
                       <img src={`${TMDB_IMAGE_BASE}/w92${p.logo_path}`} alt={p.provider_name} className="h-12 w-12 rounded-xl border border-white/10 object-cover opacity-80" />
-                      <span className="text-[10px] text-slate-400">{p.provider_name}</span>
+                      <span className="text-xs text-slate-400">{p.provider_name}</span>
                     </div>
                   ))}
                 </div>
@@ -362,8 +362,8 @@ export default function MovieDetails() {
                   )}
                 </div>
                 <div className="text-center">
-                  <p className="text-[11px] font-semibold leading-tight text-slate-200">{person.name}</p>
-                  {person.character && <p className="mt-0.5 text-[10px] leading-tight text-slate-500">{person.character}</p>}
+                  <p className="text-xs font-semibold leading-tight text-slate-200">{person.name}</p>
+                  {person.character && <p className="mt-0.5 text-xs leading-tight text-slate-500">{person.character}</p>}
                 </div>
               </div>
             ))}
@@ -381,7 +381,7 @@ export default function MovieDetails() {
                 <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-800">
                   <img src={`${TMDB_IMAGE_BASE}/w300${m.poster_path}`} alt={m.title} className="h-32 w-full object-cover transition duration-300 group-hover:scale-105" />
                 </div>
-                <p className="text-[11px] font-semibold leading-tight text-slate-300 group-hover:text-red-300">{m.title}</p>
+                <p className="text-xs font-semibold leading-tight text-slate-300 group-hover:text-red-300">{m.title}</p>
               </Link>
             ))}
           </div>
