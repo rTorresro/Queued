@@ -60,7 +60,11 @@ module.exports = (prisma) => {
       if (!item) return res.status(404).json({ error: 'Item not found.' });
 
       const updateData = {};
-      if (isWatched !== undefined) updateData.is_watched = isWatched;
+      if (isWatched !== undefined) {
+        updateData.is_watched = isWatched;
+        if (isWatched && !item.is_watched) updateData.watched_at = new Date();
+        if (!isWatched) updateData.watched_at = null;
+      }
       if (rating !== undefined) updateData.rating = rating;
       if (notes !== undefined) updateData.notes = notes;
       if (rewatchCount !== undefined) updateData.rewatch_count = rewatchCount;

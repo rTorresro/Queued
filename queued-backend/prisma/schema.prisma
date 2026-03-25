@@ -29,9 +29,11 @@ model watchlist_items {
   release_year  Int?
   director      String?
   notes         String?
-  rewatch_count Int      @default(0)
-  added_at      DateTime @default(now()) @db.Timestamp(6)
-  users         users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rewatch_count Int       @default(0)
+  mood          String?
+  added_at      DateTime  @default(now()) @db.Timestamp(6)
+  watched_at    DateTime?
+  users         users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, tmdb_movie_id])
 }

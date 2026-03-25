@@ -20,9 +20,9 @@ export default function Diary() {
   const grouped = useMemo(() => {
     const groups = {};
     [...items]
-      .sort((a, b) => new Date(b.added_at) - new Date(a.added_at))
+      .sort((a, b) => new Date(b.watched_at || b.added_at) - new Date(a.watched_at || a.added_at))
       .forEach((item) => {
-        const d = new Date(item.added_at);
+        const d = new Date(item.watched_at || item.added_at);
         const key = d.toLocaleString('default', { month: 'long', year: 'numeric' });
         if (!groups[key]) groups[key] = [];
         groups[key].push(item);

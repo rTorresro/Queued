@@ -10,6 +10,10 @@ export async function apiFetch(endpoint, { method = 'GET', body, token } = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('queued:unauthorized'));
+  }
+
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error || 'Request failed');
   return data;

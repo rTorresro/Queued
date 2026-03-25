@@ -6,6 +6,11 @@ const router = express.Router();
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+function sanitize(str, maxLen = 100) {
+  if (!str) return str;
+  return String(str).replace(/[\n\r`]/g, ' ').slice(0, maxLen);
+}
+
 function parseClaudeJson(text) {
   const cleaned = text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
   return JSON.parse(cleaned);
@@ -62,10 +67,10 @@ module.exports = (prisma) => {
       const prompt = `You are a film expert giving personalized movie recommendations.
 
 Here is this user's taste profile:
-- Top rated movies: ${topRated.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ') || 'none yet'}
-- Favorite genres: ${topGenres.join(', ') || 'varied'}
+- Top rated movies: ${topRated.map((i) => `"${sanitize(i.title)}" (${i.rating}/10)`).join(', ') || 'none yet'}
+- Favorite genres: ${topGenres.map(sanitize).join(', ') || 'varied'}
 - Average rating they give: ${avgRating || 'n/a'} out of 10
-- Movies already in their list (do NOT recommend these): ${items.map((i) => i.title).join(', ')}
+- Movies already in their list (do NOT recommend these): ${items.map((i) => sanitize(i.title)).join(', ')}
 
 Recommend exactly 6 movies they haven't seen. For each one, write a single sentence explaining WHY it fits their specific taste — mention something concrete from their profile (a movie they liked, a genre they love, a director, etc.).
 
@@ -160,12 +165,12 @@ Respond ONLY with valid JSON in this exact format, no other text:
 
 Their data:
 - Movies watched: ${items.length}
-- Top genres: ${topGenres.join(', ') || 'varied'}
+- Top genres: ${topGenres.map(sanitize).join(', ') || 'varied'}
 - Average rating: ${avgRating || 'n/a'}/10 (${ratingStyle})
 - Favorite decade: ${favDecade ? `${favDecade}s` : 'varies'}
-${favDirector ? `- Favorite director: ${favDirector} (multiple films watched)` : ''}
-${favMood ? `- Most common viewing mood: ${favMood}` : ''}
-- Top rated films: ${topRated.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ')}
+${favDirector ? `- Favorite director: ${sanitize(favDirector)} (multiple films watched)` : ''}
+${favMood ? `- Most common viewing mood: ${sanitize(favMood)}` : ''}
+- Top rated films: ${topRated.map((i) => `"${sanitize(i.title)}" (${i.rating}/10)`).join(', ')}
 
 Write a punchy film personality profile. Give them a creative "type" name (e.g., "The Melancholic Auteur"), then 2 sentences about their taste that feel insightful, not generic. Reference specific data points.
 
@@ -221,14 +226,14 @@ Respond ONLY with valid JSON:
       }[runtime || 'any'];
 
       const movieList = pool
-        .map((i) => `- "${i.title}" (${i.release_year || '?'}, ${i.runtime || '?'} min, ${i.genres || 'unknown genre'})`)
+        .map((i) => `- "${sanitize(i.title)}" (${i.release_year || '?'}, ${i.runtime || '?'} min, ${sanitize(i.genres) || 'unknown genre'})`)
         .join('\n');
 
       const prompt = `You are helping pick the perfect movie for tonight.
 
-User's mood: ${mood || 'no preference'}
+User's mood: ${sanitize(mood) || 'no preference'}
 Available time: ${runtimeLabel}
-Their top-rated movies (for taste context): ${topRated.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ') || 'none yet'}
+Their top-rated movies (for taste context): ${topRated.map((i) => `"${sanitize(i.title)}" (${i.rating}/10)`).join(', ') || 'none yet'}
 
 Movies to choose from (pick exactly ONE):
 ${movieList}
@@ -293,17 +298,17 @@ Respond ONLY with valid JSON:
 
 Their taste profile:
 - Average rating: ${avgRating}/10
-- Top genres: ${topGenres.join(', ') || 'varied'}
-- Movies they loved (8+): ${loved.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ') || 'none yet'}
-- Movies they disliked (≤5): ${disliked.map((i) => `"${i.title}" (${i.rating}/10)`).join(', ') || 'none'}
-${sameDirector > 0 ? `- They've rated ${sameDirector} other film(s) by ${director}` : ''}
+- Top genres: ${topGenres.map(sanitize).join(', ') || 'varied'}
+- Movies they loved (8+): ${loved.map((i) => `"${sanitize(i.title)}" (${i.rating}/10)`).join(', ') || 'none yet'}
+- Movies they disliked (≤5): ${disliked.map((i) => `"${sanitize(i.title)}" (${i.rating}/10)`).join(', ') || 'none'}
+${sameDirector > 0 ? `- They've rated ${sameDirector} other film(s) by ${sanitize(director)}` : ''}
 
 Movie to predict:
-- Title: "${title}"
-- Genres: ${genres || 'unknown'}
-- Director: ${director || 'unknown'}
+- Title: "${sanitize(title)}"
+- Genres: ${sanitize(genres) || 'unknown'}
+- Director: ${sanitize(director) || 'unknown'}
 - Year: ${releaseYear || 'unknown'}
-- Overview: ${overview ? overview.slice(0, 200) : 'not available'}
+- Overview: ${overview ? sanitize(overview, 200) : 'not available'}
 
 Predict the rating (1–10) this person would give. Be precise — use decimals if needed (e.g. 7.5). Reference specific data from their history.
 

@@ -1,4 +1,4 @@
-import { createContext, useMemo, useState } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +16,12 @@ function AuthProvider({ children }) {
     setToken('');
     localStorage.removeItem('queued_token');
   };
+
+  useEffect(() => {
+    const handleUnauthorized = () => logout();
+    window.addEventListener('queued:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('queued:unauthorized', handleUnauthorized);
+  }, []);
 
   const value = useMemo(
     () => ({

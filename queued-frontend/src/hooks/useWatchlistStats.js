@@ -52,9 +52,10 @@ export default function useWatchlistStats(items) {
       .slice(0, 5);
 
     const currentYear = new Date().getFullYear();
-    const thisYear = items.filter(
-      (i) => i.is_watched && new Date(i.added_at).getFullYear() === currentYear
-    );
+    const thisYear = items.filter((i) => {
+      if (!i.is_watched) return false;
+      return new Date(i.watched_at || i.added_at).getFullYear() === currentYear;
+    });
     const yearMovies = thisYear.length;
     const yearMinutes = thisYear.filter((i) => i.runtime).reduce((s, i) => s + i.runtime, 0);
     const yearHours = Math.floor(yearMinutes / 60);
