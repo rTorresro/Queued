@@ -84,26 +84,9 @@
       'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
     color: var(--text-secondary);
-    background: radial-gradient(
-      1200px 800px at 15% 15%,
-      var(--neutral-700) 0%,
-      var(--neutral-800) 45%,
-      var(--neutral-900) 100%
-    );
+    background: var(--neutral-900);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: linear-gradient(120deg, rgba(var(--primary-rgb), 0.18), rgba(var(--secondary-rgb), 0.16), rgba(var(--accent-rgb), 0.12));
-    background-size: 200% 200%;
-    animation: gradientShift 18s ease infinite;
-    opacity: 0.35;
-    pointer-events: none;
-    z-index: -1;
   }
 
   main {
@@ -204,18 +187,6 @@
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
 .page-transition {

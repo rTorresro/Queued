@@ -77,7 +77,7 @@ export default function Profile() {
 
             {/* Film Personality */}
             {stats.watched >= 5 && (
-              <div className="mt-8 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/30 to-slate-900/70 p-6">
+              <div className="mt-8 rounded-2xl border border-red-500/20 bg-slate-900/70 p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">AI insight</p>
@@ -118,7 +118,7 @@ export default function Profile() {
 
             {/* Year in Review */}
             {stats.yearMovies > 0 && (
-              <div className="mt-8 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-950/30 to-slate-900/70 p-6">
+              <div className="mt-8 rounded-2xl border border-red-500/20 bg-slate-900/70 p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300/80">{stats.currentYear} so far</p>
                 <h2 className="mt-2 text-lg font-semibold text-slate-100">Your year in film</h2>
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -152,7 +152,7 @@ export default function Profile() {
                       <div key={genre} className="flex items-center gap-3">
                         <span className="w-20 shrink-0 text-xs font-semibold text-slate-300">{genre}</span>
                         <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
-                          <div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-700" style={{ width: `${pct}%` }} />
+                          <div className="absolute left-0 top-0 h-full rounded-full bg-red-500 transition-all duration-700" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="w-6 shrink-0 text-right text-xs text-slate-500">{count}</span>
                       </div>
@@ -174,7 +174,7 @@ export default function Profile() {
                       <div key={decade} className="flex flex-1 flex-col items-center gap-2">
                         <span className="text-xs font-semibold text-slate-400">{count}</span>
                         <div className="relative w-full overflow-hidden rounded-t-lg bg-slate-800" style={{ height: 64 }}>
-                          <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-red-600/80 to-red-400/50 transition-all duration-700" style={{ height: `${heightPct}%` }} />
+                          <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-red-500/70 transition-all duration-700" style={{ height: `${heightPct}%` }} />
                         </div>
                         <span className="text-xs text-slate-500">{decade}s</span>
                       </div>
@@ -222,7 +222,7 @@ export default function Profile() {
                       <div key={bucket.score} className="flex flex-1 flex-col items-center gap-2">
                         <span className="text-xs font-semibold text-slate-400">{bucket.count || ''}</span>
                         <div className="relative w-full overflow-hidden rounded-t-lg bg-slate-800" style={{ height: 64 }}>
-                          <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-gradient-to-t from-yellow-500/80 to-yellow-400/50 transition-all duration-700" style={{ height: `${heightPct}%` }} />
+                          <div className="absolute bottom-0 left-0 right-0 rounded-t-lg bg-yellow-500/70 transition-all duration-700" style={{ height: `${heightPct}%` }} />
                         </div>
                         <span className="text-xs text-slate-400">{bucket.label}</span>
                       </div>
@@ -234,7 +234,7 @@ export default function Profile() {
 
             {/* Mood analytics */}
             {stats.moodStats.length > 0 && (
-              <div className="mt-6 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-950/20 to-slate-900/70 p-6">
+              <div className="mt-6 rounded-2xl border border-purple-500/20 bg-slate-900/70 p-6">
                 <h2 className="text-lg font-semibold text-slate-100">Your watching moods</h2>
                 <p className="mt-1 text-xs text-slate-500">How you felt while watching each film</p>
                 {stats.moodInsight && (
@@ -246,7 +246,7 @@ export default function Profile() {
                       <span className="w-20 shrink-0 text-xs font-semibold text-slate-300">{m.label}</span>
                       <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
                         <div
-                          className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-700"
+                          className="absolute left-0 top-0 h-full rounded-full bg-purple-500 transition-all duration-700"
                           style={{ width: `${Math.round((m.count / Math.max(...stats.moodStats.map((x) => x.count))) * 100)}%` }}
                         />
                       </div>

@@ -107,7 +107,7 @@ export default function Search() {
             : undefined
         }
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-900/40" />
+        <div className="absolute inset-0 bg-slate-950/80" />
         <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" />
         <div className="absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-purple-500/20 blur-3xl" />
         <div className="relative">

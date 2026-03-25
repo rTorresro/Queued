@@ -81,9 +81,6 @@ const MovieCard = ({ title, posterPath, description, actions, children, tmdbId, 
       }}
       className="group relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/80 shadow-xl transition hover:-translate-y-1 hover:border-red-500/30 hover:shadow-2xl"
     >
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
-      </div>
       <div className="relative h-60 w-full overflow-hidden bg-slate-800">
         {tmdbId ? (
           <Link to={`/movies/${tmdbId}`} className="block h-full w-full">
@@ -92,7 +89,7 @@ const MovieCard = ({ title, posterPath, description, actions, children, tmdbId, 
         ) : (
           posterContent
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/20 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-slate-950/70" />
         {badge && (
           <div className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">
             {badge}

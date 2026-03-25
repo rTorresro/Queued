@@ -201,7 +201,7 @@ export default function MovieDetails() {
             : undefined
         }
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/70 to-slate-900/30" />
+        <div className="absolute inset-0 bg-slate-950/80" />
         <div className="relative">
           <Link to={lastSearch ? `/search?query=${encodeURIComponent(lastSearch)}` : '/search'} className="text-xs font-semibold text-red-300">← Back to search</Link>
           <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
